@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (
     QTextBrowser
 )
 
+from markdown_editor.markdown_parser import MarkdownParser
+
 class MainWindow(QMainWindow):
     """Main application window"""
 
@@ -14,6 +16,9 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+
+        # Initialize the Markdown parser
+        self.markdown_parser = MarkdownParser()
 
         self.setWindowTitle("Markdown Text Editor")
         self.resize(self.INITIAL_WIDTH, self.INITIAL_HEIGHT)
@@ -29,6 +34,17 @@ class MainWindow(QMainWindow):
 
         self.editor = QPlainTextEdit()
         self.editor.setPlaceholderText("Out of words?")
+
+        # Send a signal when changes on the text are detected
+        self.editor.textChanged.connect(self._update_preview)
+
+    def _update_preview(self):
+            """Update the HTML preview using the current Markdown text"""
+    
+            mardown_text = self.editor.toPlainText()
+            html_content = self.markdown_parser.to_html(mardown_text)
+    
+            self.preview.setHtml(html_content)
 
     def _create_preview(self):
         """Create the HTML preview"""
