@@ -58,7 +58,6 @@ def test_navigation_buttons_emit_signals(qtbot):
 
 
 def test_search_options_emit_signals(qtbot):
-    """Verify that changing search options emits signals."""
     find_bar = FindBar()
     qtbot.addWidget(find_bar)
 
@@ -66,7 +65,11 @@ def test_search_options_emit_signals(qtbot):
     case_spy = QSignalSpy(find_bar.case_sensitive_changed)
     accent_spy = QSignalSpy(find_bar.accent_sensitive_changed)
 
-    find_bar.highlight_all_action.setChecked(True)
+    # Verify the default state.
+    assert find_bar.highlight_all_action.isChecked() is True
+
+    # Change each option to trigger its signal.
+    find_bar.highlight_all_action.setChecked(False)
     find_bar.case_sensitive_action.setChecked(True)
     find_bar.accent_sensitive_action.setChecked(False)
 
