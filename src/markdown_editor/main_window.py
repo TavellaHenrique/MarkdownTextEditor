@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 
 from markdown_editor.markdown_parser import MarkdownParser
 from markdown_editor.file_manager import FileManager
+from markdown_editor.themes import THEMES, build_preview_html
 
 class MainWindow(QMainWindow):
     """Main application window"""
@@ -34,12 +35,15 @@ class MainWindow(QMainWindow):
 
         self.resize(self.INITIAL_WIDTH, self.INITIAL_HEIGHT)
 
+        self.current_theme = "dark"
+    
         self._create_editor()
         self._create_preview()
         self._create_splitter()
         self._create_menu_bar()
         self._create_status_bar()
         self._update_window_title()
+        self._apply_theme()
 
     def _create_editor(self):
         """Create the Markdown text editor"""
@@ -117,6 +121,14 @@ class MainWindow(QMainWindow):
 
         view_menu.addAction(preview_action)
 
+        theme_action = QAction("Dark Theme", self)
+        theme_action.setShortcut("Ctrl+Shift+T")
+        theme_action.setCheckable(True)
+        theme_action.setChecked(True)
+        theme_action.toggled.connect(self._toggle_theme)
+
+        view_menu.addAction(theme_action)
+
     def _bind_actions_to_menu(self, actions: list, menu: QMenu):
         for text, shortcut, callback in actions:
             action = QAction(text, self)
@@ -143,25 +155,49 @@ class MainWindow(QMainWindow):
 
         self.statusBar().showMessage(f"Line: {line} | Column: {column}")
 
+    def _apply_theme(self):
+        """Apply the selected application theme"""
+
+        theme = THEMES[self.current_theme]
+
+        self.setStyleSheet(theme.application_stylesheet)
+        self._update_preview()
+
+    def _toggle_theme(self, checked):
+        """Switch between light and dark themes"""
+
+        self.current_theme = "dark" if checked else "light"
+        self._apply_theme()
+
     def _update_preview(self):
-            """Update the HTML preview using the current Markdown text"""
+        """Update the HTML preview using the current Markdown text"""
+
+        vertical_position = self.preview.verticalScrollBar().value()
+        horizontal_position = self.preview.horizontalScrollBar().value()
         
-            mardown_text = self.editor.toPlainText()
-            html_content = self.markdown_parser.to_html(mardown_text)
+        markdown_text = self.editor.toPlainText()
+        markdown_html = self.markdown_parser.to_html(markdown_text)
+
+        theme = THEMES[self.current_theme]
+        preview_html = build_preview_html(markdown_html, theme)
             
-            self.preview.setHtml(html_content)
+        self.preview.setHtml(preview_html)
+
+        # Restore previous scroll position
+        self.preview.verticalScrollBar().setValue(vertical_position)
+        self.preview.horizontalScrollBar().setValue(horizontal_position)
 
     def _update_window_title(self, modified=False):
-            """Update the current window title with the file name and modification state"""
+        """Update the current window title with the file name and modification state"""
     
-            if self.current_file_path:
-                file_name = self.current_file_path
-            else:
-                file_name = "Untitled"
+        if self.current_file_path:
+            file_name = self.current_file_path
+        else:
+            file_name = "Untitled"
             
-            modified_marker = "*" if modified else ""
+        modified_marker = "*" if modified else ""
     
-            self.setWindowTitle(f"{modified_marker} {file_name} - Markdown Text Editor")
+        self.setWindowTitle(f"{modified_marker} {file_name} - Markdown Text Editor")
 
     def _confirm_save_changes(self) -> bool:
         """Ask whether unsaved changes should be saved or discarded"""
