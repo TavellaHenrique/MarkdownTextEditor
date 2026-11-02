@@ -166,6 +166,9 @@ class MainWindow(QMainWindow):
             theme.gutter_background,
             theme.gutter_foreground
         )
+        self.editor.set_current_line_color(
+            theme.current_line_background
+        )
         
         self._update_preview()
 

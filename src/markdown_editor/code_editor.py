@@ -1,7 +1,7 @@
 
 from PySide6.QtCore import QRect, QSize, Qt
-from PySide6.QtGui import QColor, QPainter
-from PySide6.QtWidgets import QPlainTextEdit, QWidget
+from PySide6.QtGui import QColor, QPainter, QTextFormat
+from PySide6.QtWidgets import QPlainTextEdit, QTextEdit, QWidget
 
 
 class LineNumberArea(QWidget):
@@ -18,7 +18,6 @@ class LineNumberArea(QWidget):
     def paintEvent(self, event):
         """Delegate line number painting to the editor."""
         self.editor.line_number_area_paint_event(event)
-
 
 class CodeEditor(QPlainTextEdit):
     """Text editor with a line number gutter."""
@@ -39,6 +38,33 @@ class CodeEditor(QPlainTextEdit):
 
         # Initialize the gutter width.
         self.update_line_number_area_width()
+
+        self._current_line_background = QColor("#f1f5f9")
+        self.cursorPositionChanged.connect(self.highlight_current_line)
+
+        self.highlight_current_line()
+
+    def set_current_line_color(self, color):
+        """Update the current line highlight color"""
+
+        self._current_line_background = QColor(color)
+        self.highlight_current_line()
+    
+    def highlight_current_line(self):
+        """Highlight the line containing the text cursor"""
+
+        selection = QTextEdit.ExtraSelection()
+
+        selection.format.setBackground(self._current_line_background)
+        selection.format.setProperty(
+            QTextFormat.Property.FullWidthSelection,
+            True,
+        )
+
+        selection.cursor = self.textCursor()
+        selection.cursor.clearSelection()
+
+        self.setExtraSelections([selection])
 
     def line_number_area_width(self):
         """Calculate the required width for line numbers."""

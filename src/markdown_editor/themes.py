@@ -13,6 +13,7 @@ class Theme:
     code_foreground: str
     gutter_background: str
     gutter_foreground: str
+    current_line_background: str
 
 
 LIGHT_THEME = Theme(
@@ -45,10 +46,11 @@ LIGHT_THEME = Theme(
     """,
     background="#ffffff",
     foreground="#242424",
-    code_background="#ff2424",
+    code_background="#ff7777",
     code_foreground="#CECECE",
     gutter_background="#eeeeee",
     gutter_foreground="#666666",
+    current_line_background="#ff7777",
 )
 
 DARK_THEME = Theme(
@@ -81,10 +83,11 @@ DARK_THEME = Theme(
     """,
     background="#292a2d",
     foreground="#e8eaed",
-    code_background="#d41010",
+    code_background="#283c57",
     code_foreground="#f1f3f4",
     gutter_background="#292a2d",
     gutter_foreground="#9aa0a6",
+    current_line_background="#283c57"
 )
 
 
