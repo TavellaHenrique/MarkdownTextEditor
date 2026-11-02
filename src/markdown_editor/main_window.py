@@ -65,11 +65,50 @@ class MainWindow(QMainWindow):
 
         self.find_bar = FindBar(self.editor)
 
+        # Connect search navigation signals.
+        self.find_bar.next_requested.connect(self.editor.find_next)
+        self.find_bar.previous_requested.connect(self.editor.find_previous)
+
+        # Connect search input and option signals.
+        self.find_bar.search_text_changed.connect(self._update_search)
+        self.find_bar.highlight_all_changed.connect(self._update_search)
+        self.find_bar.case_sensitive_changed.connect(self._update_search)
+        self.find_bar.accent_sensitive_changed.connect(self._update_search)
+
         # Observe editor resizing to keep the search bar positioned.
         self.editor.installEventFilter(self)
 
-        # Restore editor focus when the search bar is closed.
-        self.find_bar.close_requested.connect(self.editor.setFocus)
+        # Clear search highlights and restore editor focus when closing.
+        self.find_bar.close_requested.connect(self._clear_search)
+
+    def _update_search(self, _value=None):
+        """Execute the search using the current input and options."""
+
+        search_text = self.find_bar.search_input.text()
+
+        match_count = self.editor.search_text(
+            search_text,
+            case_sensitive=self.find_bar.case_sensitive_action.isChecked(),
+            accent_sensitive=self.find_bar.accent_sensitive_action.isChecked(),
+            highlight_all=self.find_bar.highlight_all_action.isChecked(),
+        )
+
+        if search_text and match_count == 0:
+            self.statusBar().showMessage(
+                "No results found",
+                self.MESSAGE_TIMEOUT,
+            )
+        elif search_text:
+            self.statusBar().showMessage(
+                f"{match_count} matches found",
+                self.MESSAGE_TIMEOUT,
+            )
+
+    def _clear_search(self):
+        """Clear search results and restore editor focus."""
+
+        self.editor.search_text("")
+        self.editor.setFocus()
 
     def _create_preview(self):
         """Create the HTML preview"""

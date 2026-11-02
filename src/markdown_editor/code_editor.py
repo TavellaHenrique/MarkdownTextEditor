@@ -1,5 +1,12 @@
+import unicodedata
+
 from PySide6.QtCore import QRect, QSize, Qt
-from PySide6.QtGui import QColor, QPainter, QTextFormat
+from PySide6.QtGui import (
+    QColor,
+    QPainter,
+    QTextCursor,
+    QTextFormat,
+)
 from PySide6.QtWidgets import QPlainTextEdit, QTextEdit, QWidget
 
 
@@ -30,6 +37,16 @@ class CodeEditor(QPlainTextEdit):
         self._gutter_background = QColor("#eeeeee")
         self._gutter_foreground = QColor("#666666")
 
+        # Initialize search state.
+        self._search_matches = []
+        self._current_match_index = -1
+        self._highlight_all_matches = False
+
+        # TODO Do colors match theme
+        # Define search highlight colors.
+        self._search_highlight_color = QColor("#665c00")
+        self._current_match_color = QColor("#d97706")
+
         # Connect document and viewport events.
         self.blockCountChanged.connect(self.update_line_number_area_width)
         self.updateRequest.connect(self.update_line_number_area)
@@ -43,6 +60,160 @@ class CodeEditor(QPlainTextEdit):
 
         self.highlight_current_line()
 
+    def search_text(
+        self,
+        search_text: str,
+        case_sensitive: bool = False,
+        accent_sensitive: bool = True,
+        highlight_all: bool = False,
+    ) -> int:
+        """Find all occurrences of the requested text."""
+
+        self._search_matches.clear()
+        self._current_match_index = -1
+        self._highlight_all_matches = highlight_all
+
+        if not search_text:
+            self._update_extra_selections()
+            return 0
+
+        document_text = self.toPlainText()
+
+        normalized_document, position_map = self._normalize_search_text(
+            document_text,
+            case_sensitive,
+            accent_sensitive,
+        )
+
+        normalized_query, _ = self._normalize_search_text(
+            search_text,
+            case_sensitive,
+            accent_sensitive,
+        )
+
+        if not normalized_query:
+            self._update_extra_selections()
+            return 0
+
+        # Find every occurrence in the normalized document.
+        search_position = 0
+
+        while True:
+            match_position = normalized_document.find(
+                normalized_query,
+                search_position,
+            )
+
+            if match_position == -1:
+                break
+
+            match_end = match_position + len(normalized_query)
+
+            original_start = position_map[match_position][0]
+            original_end = position_map[match_end - 1][1]
+
+            self._search_matches.append((original_start, original_end))
+
+            # Advance by one character to allow overlapping matches.
+            search_position = match_position + 1
+
+        if self._search_matches:
+            self._current_match_index = 0
+            self._select_current_match()
+
+        self._update_extra_selections()
+
+        return len(self._search_matches)
+
+    def find_next(self) -> bool:
+        """Select the next search occurrence."""
+
+        if not self._search_matches:
+            return False
+
+        self._current_match_index = (self._current_match_index + 1) % len(
+            self._search_matches
+        )
+
+        self._select_current_match()
+        self._update_extra_selections()
+
+        return True
+
+    def find_previous(self) -> bool:
+        """Select the previous search occurrence."""
+
+        if not self._search_matches:
+            return False
+
+        self._current_match_index = (self._current_match_index - 1) % len(
+            self._search_matches
+        )
+
+        self._select_current_match()
+        self._update_extra_selections()
+
+        return True
+
+    def _select_current_match(self):
+        """Select the currently active search occurrence."""
+
+        if self._current_match_index < 0:
+            return
+
+        start, end = self._search_matches[self._current_match_index]
+
+        cursor = QTextCursor(self.document())
+        cursor.setPosition(start)
+        cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+
+        self.setTextCursor(cursor)
+        self.ensureCursorVisible()
+
+    @staticmethod
+    def _normalize_search_text(
+        text: str,
+        case_sensitive: bool,
+        accent_sensitive: bool,
+    ) -> tuple[str, list[tuple[int, int]]]:
+        """Normalize text while preserving original character positions."""
+
+        normalized_text = []
+        position_map = []
+        source_position = 0
+
+        for character in text:
+            # Decompose characters only when accent sensitivity is disabled.
+            if accent_sensitive:
+                normalized_character = character
+            else:
+                normalized_character = unicodedata.normalize(
+                    "NFD",
+                    character,
+                )
+
+                normalized_character = "".join(
+                    char
+                    for char in normalized_character
+                    if unicodedata.category(char) != "Mn"
+                )
+
+            if not case_sensitive:
+                normalized_character = normalized_character.casefold()
+
+            # Preserve original UTF-16 positions used by QTextCursor.
+            character_length = len(character.encode("utf-16-le")) // 2
+
+            for normalized_char in normalized_character:
+                normalized_text.append(normalized_char)
+                position_map.append(
+                    (source_position, source_position + character_length)
+                )
+
+            source_position += character_length
+
+        return "".join(normalized_text), position_map
+
     def set_current_line_color(self, color):
         """Update the current line highlight color"""
 
@@ -50,20 +221,60 @@ class CodeEditor(QPlainTextEdit):
         self.highlight_current_line()
 
     def highlight_current_line(self):
-        """Highlight the line containing the text cursor"""
+        """Refresh the current line and search highlights"""
 
-        selection = QTextEdit.ExtraSelection()
+        self._update_extra_selections()
 
-        selection.format.setBackground(self._current_line_background)
-        selection.format.setProperty(
+    def _update_extra_selections(self):
+        """Combine current line and search occurrence highlights"""
+
+        selections = []
+
+        # Highlight the current editor line.
+        line_selection = QTextEdit.ExtraSelection()
+        line_selection.format.setBackground(self._current_line_background)
+        line_selection.format.setProperty(
             QTextFormat.Property.FullWidthSelection,
             True,
         )
 
-        selection.cursor = self.textCursor()
-        selection.cursor.clearSelection()
+        line_selection.cursor = self.textCursor()
+        line_selection.cursor.clearSelection()
 
-        self.setExtraSelections([selection])
+        selections.append(line_selection)
+
+        # Highlight all search occurrences when enabled.
+        if self._highlight_all_matches:
+            for start, end in self._search_matches:
+                selection = QTextEdit.ExtraSelection()
+                selection.format.setBackground(self._search_highlight_color)
+
+                selection.cursor = QTextCursor(self.document())
+                selection.cursor.setPosition(start)
+                selection.cursor.setPosition(
+                    end,
+                    QTextCursor.MoveMode.KeepAnchor,
+                )
+
+                selections.append(selection)
+
+        # Highlight the active occurrence with a distinct color.
+        if self._current_match_index >= 0:
+            start, end = self._search_matches[self._current_match_index]
+
+            current_selection = QTextEdit.ExtraSelection()
+            current_selection.format.setBackground(self._current_match_color)
+
+            current_selection.cursor = QTextCursor(self.document())
+            current_selection.cursor.setPosition(start)
+            current_selection.cursor.setPosition(
+                end,
+                QTextCursor.MoveMode.KeepAnchor,
+            )
+
+            selections.append(current_selection)
+
+        self.setExtraSelections(selections)
 
     def line_number_area_width(self):
         """Calculate the required width for line numbers."""
