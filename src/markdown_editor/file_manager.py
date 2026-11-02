@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 class FileManager:
     """Handle Markdown file operations"""
 

@@ -1,11 +1,4 @@
-from PySide6.QtWidgets import QMessageBox
 import pytest
-
-from markdown_editor.main_window import MainWindow
-
-
-import pytest
-
 from PySide6.QtWidgets import QMessageBox
 
 from markdown_editor.main_window import MainWindow

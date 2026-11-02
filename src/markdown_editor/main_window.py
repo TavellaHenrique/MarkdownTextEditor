@@ -8,20 +8,21 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QSplitter,
-    QTextBrowser
+    QTextBrowser,
 )
 
-from markdown_editor.markdown_parser import MarkdownParser
-from markdown_editor.file_manager import FileManager
 from markdown_editor.code_editor import CodeEditor
+from markdown_editor.file_manager import FileManager
+from markdown_editor.markdown_parser import MarkdownParser
 from markdown_editor.themes import THEMES, build_preview_html
+
 
 class MainWindow(QMainWindow):
     """Main application window"""
 
     INITIAL_WIDTH = 1000
     INITIAL_HEIGHT = 500
-    STATUS_BAR_MESSAGE_TIMEOUT = 5000 # ms
+    MESSAGE_TIMEOUT = 5000 # ms
 
     def __init__(self):
         super().__init__()
@@ -256,7 +257,10 @@ class MainWindow(QMainWindow):
         self.current_file_path = file_path
         self.editor.setPlainText(content)
         self.editor.document().setModified(False)
-        self.statusBar().showMessage("File opened successfully", self.STATUS_BAR_MESSAGE_TIMEOUT)
+        self.statusBar().showMessage(
+            "File opened successfully",
+            self.MESSAGE_TIMEOUT
+        )
 
     def _save_file(self) -> bool:
         """Save the current document"""
@@ -304,7 +308,10 @@ class MainWindow(QMainWindow):
             return False
 
         self.editor.document().setModified(False)
-        self.statusBar().showMessage("File saved successfully", self.STATUS_BAR_MESSAGE_TIMEOUT)
+        self.statusBar().showMessage(
+            "File saved successfully",
+            self.MESSAGE_TIMEOUT
+        )
         return True
 
     def closeEvent(self, event):

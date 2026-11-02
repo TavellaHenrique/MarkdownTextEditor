@@ -1,5 +1,6 @@
 from markdown_it import MarkdownIt
 
+
 class MarkdownParser:
     """Convert Markdown text into HTML"""
 

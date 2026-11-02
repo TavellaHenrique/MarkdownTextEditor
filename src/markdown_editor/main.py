@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QApplication
 
 from markdown_editor.main_window import MainWindow
 
+
 def main():
     """Initialize and execute the application"""
 
