@@ -7,13 +7,13 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
-    QPlainTextEdit,
     QSplitter,
     QTextBrowser
 )
 
 from markdown_editor.markdown_parser import MarkdownParser
 from markdown_editor.file_manager import FileManager
+from markdown_editor.code_editor import CodeEditor
 from markdown_editor.themes import THEMES, build_preview_html
 
 class MainWindow(QMainWindow):
@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
     def _create_editor(self):
         """Create the Markdown text editor"""
 
-        self.editor = QPlainTextEdit()
+        self.editor = CodeEditor()
         self.editor.setPlaceholderText("Out of words?")
 
         # Send a signal when changes on the text are detected
@@ -161,6 +161,12 @@ class MainWindow(QMainWindow):
         theme = THEMES[self.current_theme]
 
         self.setStyleSheet(theme.application_stylesheet)
+        
+        self.editor.set_line_number_colors(
+            theme.gutter_background,
+            theme.gutter_foreground
+        )
+        
         self._update_preview()
 
     def _toggle_theme(self, checked):
