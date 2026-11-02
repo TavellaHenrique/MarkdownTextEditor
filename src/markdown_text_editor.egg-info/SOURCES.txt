@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/markdown_editor/__init__.py
+src/markdown_editor/file_manager.py
+src/markdown_editor/main.py
+src/markdown_editor/main_window.py
+src/markdown_editor/markdown_parser.py
+src/markdown_text_editor.egg-info/PKG-INFO
+src/markdown_text_editor.egg-info/SOURCES.txt
+src/markdown_text_editor.egg-info/dependency_links.txt
+src/markdown_text_editor.egg-info/entry_points.txt
+src/markdown_text_editor.egg-info/requires.txt
+src/markdown_text_editor.egg-info/top_level.txt
+tests/test_file_manager.py
+tests/test_markdown_parser.py

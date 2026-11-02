@@ -1,0 +1,5 @@
+PySide6
+markdown-it-py
+
+[dev]
+pytest
