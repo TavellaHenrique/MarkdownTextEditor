@@ -5,6 +5,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QFileDialog,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QSplitter,
@@ -72,38 +73,75 @@ class MainWindow(QMainWindow):
     def _create_menu_bar(self):
         """Create the application menu bar"""
 
-        menu_bar = self.menuBar()
-
         self._create_file_menu()
-        menu_bar.addMenu("Edit")
-        menu_bar.addMenu("View")
+        self._create_edit_menu()
+        self._create_view_menu()
 
     def _create_file_menu(self):
+        """Create file menu on Menu Bar"""
+
         file_menu = self.menuBar().addMenu("File")
-        actions = []
+        actions = [
+            ("Open", "Ctrl+O", self._open_file),
+            ("Save", "Ctrl+S", self._save_file),
+            ("Save As", "Ctrl+Shift+S", self._save_file_as),
+        ]
+
+        self._bind_actions_to_menu(actions, file_menu)
+
+    def _create_edit_menu(self):
+        """Create edit menu on Menu Bar"""
+
+        edit_menu = self.menuBar().addMenu("Edit")
+        actions = [
+            ("Undo", "Ctrl+Z", self.editor.undo),
+            ("Redo", "Ctrl+Y", self.editor.redo),
+            ("Cut", "Ctrl+X", self.editor.cut),
+            ("Copy", "Ctrl+C", self.editor.copy),
+            ("Paste", "Ctrl+V", self.editor.paste),
+            ("Select All", "Ctrl+A", self.editor.selectAll),
+        ]
+
+        self._bind_actions_to_menu(actions, edit_menu)
+    
+    def _create_view_menu(self):
+        """Create view menu on Menu Bar"""
         
-        open_action = QAction("Open", self)
-        open_action.setShortcut("Ctrl+O")
-        open_action.triggered.connect(self._open_file)
-        actions.append(open_action)
+        view_menu = self.menuBar().addMenu("View")
 
-        save_action = QAction("Save", self)
-        save_action.setShortcut("Ctrl+S")
-        save_action.triggered.connect(self._save_file)
-        actions.append(save_action)
+        preview_action = QAction("Show Preview", self)
+        preview_action.setShortcut("Ctrl+P")
+        preview_action.setCheckable(True)
+        preview_action.setChecked(True)
+        preview_action.toggled.connect(self.preview.setVisible)
 
-        save_as_action = QAction("Save As", self)
-        save_as_action.setShortcut("Ctrl+Shift+S")
-        save_as_action.triggered.connect(self._save_file_as)
-        actions.append(save_as_action)
+        view_menu.addAction(preview_action)
 
-        for action in actions:
-            file_menu.addAction(action)
+    def _bind_actions_to_menu(self, actions: list, menu: QMenu):
+        for text, shortcut, callback in actions:
+            action = QAction(text, self)
+            action.setShortcut(shortcut)
+            action.triggered.connect(callback)
+            menu.addAction(action)
 
     def _create_status_bar(self):
         """Create the application status bar"""
 
-        self.statusBar().showMessage("Ready")
+        self.editor.cursorPositionChanged.connect(
+            self._update_cursor_position
+        )
+
+        self._update_cursor_position()
+    
+    def _update_cursor_position(self):
+        """Display the current cursor position"""
+
+        cursor = self.editor.textCursor()
+
+        line = cursor.blockNumber() + 1
+        column = cursor.positionInBlock() + 1
+
+        self.statusBar().showMessage(f"Line: {line} | Column: {column}")
 
     def _update_preview(self):
             """Update the HTML preview using the current Markdown text"""
