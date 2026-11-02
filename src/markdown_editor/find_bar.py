@@ -11,6 +11,31 @@ from PySide6.QtWidgets import (
 )
 
 
+class SearchInput(QLineEdit):
+    """Search input with keyboard navigation shortcuts."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # Prevent arrow keys from moving the text cursor.
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+    def keyPressEvent(self, event):
+        """Handle arrow keys for search navigation."""
+
+        if event.key() == Qt.Key.Key_Down:
+            self.parent().next_requested.emit()
+            event.accept()
+            return
+
+        if event.key() == Qt.Key.Key_Up:
+            self.parent().previous_requested.emit()
+            event.accept()
+            return
+
+        super().keyPressEvent(event)
+
+
 class FindBar(QFrame):
     """Provide the user interface for text search."""
 
@@ -39,7 +64,7 @@ class FindBar(QFrame):
     def _create_widgets(self):
         """Create the search field and action buttons."""
 
-        self.search_input = QLineEdit()
+        self.search_input = SearchInput(self)
         self.search_input.setObjectName("findInput")
         self.search_input.setPlaceholderText("Find")
         self.search_input.setClearButtonEnabled(True)
@@ -54,12 +79,12 @@ class FindBar(QFrame):
         self.previous_button = QToolButton()
         self.previous_button.setObjectName("previousButton")
         self.previous_button.setText("↑")
-        self.previous_button.setToolTip("Previous occurrence (Shift+Enter)")
+        self.previous_button.setToolTip("Previous occurrence (Up)")
 
         self.next_button = QToolButton()
         self.next_button.setObjectName("nextButton")
         self.next_button.setText("↓")
-        self.next_button.setToolTip("Next occurrence (Enter)")
+        self.next_button.setToolTip("Next occurrence (Down)")
 
         self.options_button = QToolButton()
         self.options_button.setObjectName("optionsButton")
@@ -78,12 +103,6 @@ class FindBar(QFrame):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(4)
-
-        layout.addWidget(self.search_input, 1)
-        layout.addWidget(self.previous_button)
-        layout.addWidget(self.next_button)
-        layout.addWidget(self.options_button)
-        layout.addWidget(self.close_button)
 
         layout.addWidget(self.search_input, 1)
         layout.addWidget(self.match_label)
@@ -131,17 +150,15 @@ class FindBar(QFrame):
     def _connect_signals(self):
         """Connect widget events to the component signals."""
 
-        # Forward text changes through the component signal.
         self.search_input.textChanged.connect(self.search_text_changed.emit)
-        self.search_input.returnPressed.connect(self.next_requested)
 
-        self.previous_button.clicked.connect(self.previous_requested)
-        self.next_button.clicked.connect(self.next_requested)
+        self.previous_button.clicked.connect(self.previous_requested.emit)
+        self.next_button.clicked.connect(self.next_requested.emit)
         self.close_button.clicked.connect(self.close_bar)
 
-        self.highlight_all_action.toggled.connect(self.highlight_all_changed)
-        self.case_sensitive_action.toggled.connect(self.case_sensitive_changed)
-        self.accent_sensitive_action.toggled.connect(self.accent_sensitive_changed)
+        self.highlight_all_action.toggled.connect(self.highlight_all_changed.emit)
+        self.case_sensitive_action.toggled.connect(self.case_sensitive_changed.emit)
+        self.accent_sensitive_action.toggled.connect(self.accent_sensitive_changed.emit)
 
     def _create_shortcuts(self):
         """Configure keyboard shortcuts available while the bar is visible."""
@@ -152,13 +169,6 @@ class FindBar(QFrame):
         )
         self.escape_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.escape_shortcut.activated.connect(self.close_bar)
-
-        self.previous_shortcut = QShortcut(
-            QKeySequence("Shift+Return"),
-            self,
-        )
-        self.previous_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
-        self.previous_shortcut.activated.connect(self.previous_requested)
 
     def show_bar(self, selected_text: str = ""):
         """Show the search bar without automatically executing a search."""
