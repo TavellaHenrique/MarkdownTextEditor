@@ -66,8 +66,8 @@ class MainWindow(QMainWindow):
         self.find_bar = FindBar(self.editor)
 
         # Connect search navigation signals.
-        self.find_bar.next_requested.connect(self.editor.find_next)
-        self.find_bar.previous_requested.connect(self.editor.find_previous)
+        self.find_bar.next_requested.connect(self._find_next)
+        self.find_bar.previous_requested.connect(self._find_previous)
 
         # Connect search input and option signals.
         self.find_bar.search_text_changed.connect(self._update_search)
@@ -81,8 +81,18 @@ class MainWindow(QMainWindow):
         # Clear search highlights and restore editor focus when closing.
         self.find_bar.close_requested.connect(self._clear_search)
 
-    def _update_search(self, _value=None):
-        """Execute the search using the current input and options."""
+    def _update_search(self, _value=None, preferred_selection=None):
+        """Execute the search and update the occurrence indicator."""
+
+        if preferred_selection is None:
+            # Preserve the current editor selection when it remains a valid match.
+            cursor = self.editor.textCursor()
+
+            if cursor.hasSelection():
+                preferred_selection = (
+                    cursor.selectionStart(),
+                    cursor.selectionEnd(),
+                )
 
         search_text = self.find_bar.search_input.text()
 
@@ -91,6 +101,12 @@ class MainWindow(QMainWindow):
             case_sensitive=self.find_bar.case_sensitive_action.isChecked(),
             accent_sensitive=self.find_bar.accent_sensitive_action.isChecked(),
             highlight_all=self.find_bar.highlight_all_action.isChecked(),
+            preferred_selection=preferred_selection,
+        )
+
+        self.find_bar.update_match_indicator(
+            self.editor.current_match_number,
+            match_count,
         )
 
         if search_text and match_count == 0:
@@ -258,20 +274,34 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"{modified_marker}{file_name} - Markdown Text Editor")
 
     def _show_find_bar(self, _checked=False):
-        """Display the search bar or update its query with selected text."""
+        """Display the search bar and search the selected text."""
 
-        selected_text = self.editor.textCursor().selectedText()
+        cursor = self.editor.textCursor()
+        selected_text = cursor.selectedText()
+
+        preferred_selection = None
+
+        if cursor.hasSelection():
+            preferred_selection = (
+                cursor.selectionStart(),
+                cursor.selectionEnd(),
+            )
 
         if self.find_bar.isVisible():
             if selected_text:
-                # Update the query and trigger a new search.
+                # Update the query without triggering an intermediate search.
+                self.find_bar.search_input.blockSignals(True)
                 self.find_bar.search_input.setText(selected_text)
+                self.find_bar.search_input.blockSignals(False)
+
                 self.find_bar.search_input.selectAll()
+                self._update_search(preferred_selection=preferred_selection)
 
             self.find_bar.search_input.setFocus()
+
         else:
-            # Preserve the initial behavior without automatically searching.
             self.find_bar.show_bar(selected_text)
+            self._update_search(preferred_selection=preferred_selection)
 
         self._position_find_bar()
 
@@ -287,6 +317,26 @@ class MainWindow(QMainWindow):
 
         self.find_bar.move(x_position, 12)
         self.find_bar.raise_()
+
+    def _find_next(self):
+        """Navigate to the next occurrence and update the indicator."""
+
+        self.editor.find_next()
+
+        self.find_bar.update_match_indicator(
+            self.editor.current_match_number,
+            self.editor.match_count,
+        )
+
+    def _find_previous(self):
+        """Navigate to the previous occurrence and update the indicator."""
+
+        self.editor.find_previous()
+
+        self.find_bar.update_match_indicator(
+            self.editor.current_match_number,
+            self.editor.match_count,
+        )
 
     def eventFilter(self, watched, event):
         """Keep the search bar positioned when the editor is resized."""

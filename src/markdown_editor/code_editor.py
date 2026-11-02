@@ -29,6 +29,19 @@ class LineNumberArea(QWidget):
 class CodeEditor(QPlainTextEdit):
     """Text editor with a line number gutter."""
 
+    @property
+    def match_count(self) -> int:
+        """Return the total number of search occurrences."""
+        return len(self._search_matches)
+
+    @property
+    def current_match_number(self) -> int:
+        """Return the one-based index of the active occurrence."""
+        if self._current_match_index < 0:
+            return 0
+
+        return self._current_match_index + 1
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -66,6 +79,7 @@ class CodeEditor(QPlainTextEdit):
         case_sensitive: bool = False,
         accent_sensitive: bool = True,
         highlight_all: bool = False,
+        preferred_selection: tuple[int, int] | None = None,
     ) -> int:
         """Find all occurrences of the requested text."""
 
@@ -118,7 +132,14 @@ class CodeEditor(QPlainTextEdit):
             search_position = match_position + 1
 
         if self._search_matches:
-            self._current_match_index = 0
+            # Preserve the requested occurrence when it still exists.
+            if preferred_selection in self._search_matches:
+                self._current_match_index = self._search_matches.index(
+                    preferred_selection
+                )
+            else:
+                self._current_match_index = 0
+
             self._select_current_match()
 
         self._update_extra_selections()

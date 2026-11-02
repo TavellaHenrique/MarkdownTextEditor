@@ -3,6 +3,7 @@ from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QMenu,
     QToolButton,
@@ -43,6 +44,13 @@ class FindBar(QFrame):
         self.search_input.setPlaceholderText("Find")
         self.search_input.setClearButtonEnabled(True)
 
+        # Display the current occurrence and total match count.
+        self.match_label = QLabel("0/0")
+        self.match_label.setObjectName("matchLabel")
+        self.match_label.setMinimumWidth(40)
+        self.match_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.match_label.setToolTip("Current occurrence / Total occurrences")
+
         self.previous_button = QToolButton()
         self.previous_button.setObjectName("previousButton")
         self.previous_button.setText("↑")
@@ -77,6 +85,17 @@ class FindBar(QFrame):
         layout.addWidget(self.options_button)
         layout.addWidget(self.close_button)
 
+        layout.addWidget(self.search_input, 1)
+        layout.addWidget(self.match_label)
+        layout.addWidget(self.previous_button)
+        layout.addWidget(self.next_button)
+        layout.addWidget(self.options_button)
+        layout.addWidget(self.close_button)
+
+    def update_match_indicator(self, current: int, total: int):
+        """Update the current occurrence indicator."""
+        self.match_label.setText(f"{current} of {total}")
+
     def _create_options_menu(self):
         """Create the expandable menu with search options."""
 
@@ -87,7 +106,7 @@ class FindBar(QFrame):
             self,
         )
         self.highlight_all_action.setCheckable(True)
-        self.highlight_all_action.setChecked(False)
+        self.highlight_all_action.setChecked(True)
 
         self.case_sensitive_action = QAction(
             "Match case",
