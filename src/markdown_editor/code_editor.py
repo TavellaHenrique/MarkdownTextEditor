@@ -9,6 +9,14 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QPlainTextEdit, QTextEdit, QWidget
 
+from markdown_editor.typography import (
+    EDITOR_DEFAULT_FONT_SIZE,
+    EDITOR_FONT_SIZE_STEP,
+    EDITOR_MAX_FONT_SIZE,
+    EDITOR_MIN_FONT_SIZE,
+    create_editor_font,
+)
+
 
 class LineNumberArea(QWidget):
     """Widget responsible for displaying editor line numbers."""
@@ -29,6 +37,10 @@ class LineNumberArea(QWidget):
 class CodeEditor(QPlainTextEdit):
     """Text editor with a line number gutter."""
 
+    MIN_FONT_SIZE = EDITOR_MIN_FONT_SIZE
+    MAX_FONT_SIZE = EDITOR_MAX_FONT_SIZE
+    FONT_SIZE_STEP = EDITOR_FONT_SIZE_STEP
+
     @property
     def match_count(self) -> int:
         """Return the total number of search occurrences."""
@@ -44,6 +56,13 @@ class CodeEditor(QPlainTextEdit):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        # Initialize the editor font size.
+        self._default_font_size = EDITOR_DEFAULT_FONT_SIZE
+        self._current_font_size = self._default_font_size
+
+        # Apply the default monospaced font.
+        self.setFont(create_editor_font())
 
         self.line_number_area = LineNumberArea(self)
 
@@ -393,4 +412,39 @@ class CodeEditor(QPlainTextEdit):
         self._gutter_background = QColor(background)
         self._gutter_foreground = QColor(foreground)
 
+        self.line_number_area.update()
+
+    def increase_font_size(self):
+        """Increase the editor font size."""
+        new_size = min(
+            self._current_font_size + self.FONT_SIZE_STEP,
+            self.MAX_FONT_SIZE,
+        )
+        self._set_font_size(new_size)
+
+    def decrease_font_size(self):
+        """Decrease the editor font size."""
+        new_size = max(
+            self._current_font_size - self.FONT_SIZE_STEP,
+            self.MIN_FONT_SIZE,
+        )
+        self._set_font_size(new_size)
+
+    def reset_font_size(self):
+        """Restore the default editor font size."""
+        self._set_font_size(self._default_font_size)
+
+    def _set_font_size(self, size):
+        """Apply a font size and update the line number area."""
+        self._current_font_size = max(
+            self.MIN_FONT_SIZE,
+            min(size, self.MAX_FONT_SIZE),
+        )
+
+        font = self.font()
+        font.setPointSize(round(self._current_font_size))
+
+        self.setFont(font)
+
+        self.update_line_number_area_width()
         self.line_number_area.update()

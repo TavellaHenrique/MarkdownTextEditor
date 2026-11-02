@@ -1,5 +1,10 @@
 from dataclasses import dataclass
 
+from markdown_editor.typography import (
+    PREVIEW_FONT_FAMILY,
+    PREVIEW_FONT_SIZE,
+)
+
 
 @dataclass(frozen=True)
 class Theme:
@@ -26,7 +31,6 @@ LIGHT_THEME = Theme(
             color: #242424;
             border: 1px solid #d0d0d0;
             padding: 8px;
-            font-size: 14px;
         }
 
         QMenuBar {
@@ -63,7 +67,6 @@ DARK_THEME = Theme(
             color: #e8eaed;
             border: 1px solid #44464a;
             padding: 8px;
-            font-size: 14px;
         }
 
         QMenuBar {
@@ -98,8 +101,8 @@ THEMES = {
 
 PREVIEW_CSS = """
     body {
-        font-family: Arial, sans-serif;
-        font-size: 15px;
+        font-family: __PREVIEW_FONT_FAMILY__;
+        font-size: __PREVIEW_FONT_SIZE__px;
         line-height: 1.6;
         max-width: 900px;
         margin: 24px auto;
@@ -147,12 +150,17 @@ PREVIEW_CSS = """
 
 def build_preview_html(markdown_html: str, theme: Theme) -> str:
     """Build the preview HTML using the selected theme."""
+
+    preview_css = PREVIEW_CSS.replace(
+        "__PREVIEW_FONT_FAMILY__", PREVIEW_FONT_FAMILY
+    ).replace("__PREVIEW_FONT_SIZE__", str(PREVIEW_FONT_SIZE))
+
     return f"""
     <!DOCTYPE html>
     <html>
     <head>
         <style>
-            {PREVIEW_CSS}
+            {preview_css}
 
             body {{
                 background-color: {theme.background};

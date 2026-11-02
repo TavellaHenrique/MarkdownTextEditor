@@ -199,6 +199,16 @@ class MainWindow(QMainWindow):
 
         view_menu.addAction(theme_action)
 
+        view_menu.addSeparator()
+
+        font_actions = [
+            ("Increase Font Size", "Ctrl+=", self.editor.increase_font_size),
+            ("Decrease Font Size", "Ctrl+-", self.editor.decrease_font_size),
+            ("Reset Font Size", "Ctrl+0", self.editor.reset_font_size),
+        ]
+
+        self._bind_actions_to_menu(font_actions, view_menu)
+
     def _bind_actions_to_menu(self, actions: list, menu: QMenu):
         for text, shortcut, callback in actions:
             action = QAction(text, self)
