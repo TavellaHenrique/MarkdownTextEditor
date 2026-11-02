@@ -41,6 +41,7 @@ class CodeEditor(QPlainTextEdit):
 
         self._current_line_background = QColor("#f1f5f9")
         self.cursorPositionChanged.connect(self.highlight_current_line)
+        self.cursorPositionChanged.connect(self.line_number_area.update)
 
         self.highlight_current_line()
 
@@ -133,7 +134,18 @@ class CodeEditor(QPlainTextEdit):
             if block.isVisible() and bottom >= event.rect().top():
                 line_number = str(block_number + 1)
 
-                painter.setPen(self._gutter_foreground)
+                # Draw the line number with a highlighted background when selected.
+                if block_number == self.textCursor().blockNumber():
+                    painter.fillRect(
+                        0,
+                        top,
+                        self.line_number_area.width(),
+                        self.fontMetrics().height(),
+                        self._current_line_background,
+                    )
+                    painter.setPen(self._gutter_foreground)
+                else:
+                    painter.setPen(self._gutter_foreground)
 
                 painter.drawText(
                     0,
