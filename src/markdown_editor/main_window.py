@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 
 from markdown_editor.code_editor import CodeEditor
 from markdown_editor.file_manager import FileManager
+from markdown_editor.find_bar import FindBar
 from markdown_editor.markdown_parser import MarkdownParser
 from markdown_editor.themes import THEMES, build_preview_html
 
@@ -22,7 +23,7 @@ class MainWindow(QMainWindow):
 
     INITIAL_WIDTH = 1000
     INITIAL_HEIGHT = 500
-    MESSAGE_TIMEOUT = 5000 # ms
+    MESSAGE_TIMEOUT = 5000  # ms
 
     def __init__(self):
         super().__init__()
@@ -37,8 +38,9 @@ class MainWindow(QMainWindow):
         self.resize(self.INITIAL_WIDTH, self.INITIAL_HEIGHT)
 
         self.current_theme = "dark"
-    
+
         self._create_editor()
+        self._create_find_bar()
         self._create_preview()
         self._create_splitter()
         self._create_menu_bar()
@@ -58,6 +60,17 @@ class MainWindow(QMainWindow):
         # Send a signal when document changes
         self.editor.document().modificationChanged.connect(self._update_window_title)
 
+    def _create_find_bar(self):
+        """Create and configure the floating search bar."""
+
+        self.find_bar = FindBar(self.editor)
+
+        # Observe editor resizing to keep the search bar positioned.
+        self.editor.installEventFilter(self)
+
+        # Restore editor focus when the search bar is closed.
+        self.find_bar.close_requested.connect(self.editor.setFocus)
+
     def _create_preview(self):
         """Create the HTML preview"""
 
@@ -71,7 +84,7 @@ class MainWindow(QMainWindow):
 
         splitter.addWidget(self.editor)
         splitter.addWidget(self.preview)
-        splitter.setSizes([self.width()/2, self.width()/2])
+        splitter.setSizes([self.width() / 2, self.width() / 2])
 
         self.setCentralWidget(splitter)
 
@@ -105,13 +118,14 @@ class MainWindow(QMainWindow):
             ("Copy", "Ctrl+C", self.editor.copy),
             ("Paste", "Ctrl+V", self.editor.paste),
             ("Select All", "Ctrl+A", self.editor.selectAll),
+            ("Find", "Ctrl+F", self._show_find_bar),
         ]
 
         self._bind_actions_to_menu(actions, edit_menu)
-    
+
     def _create_view_menu(self):
         """Create view menu on Menu Bar"""
-        
+
         view_menu = self.menuBar().addMenu("View")
 
         preview_action = QAction("Show Preview", self)
@@ -140,12 +154,10 @@ class MainWindow(QMainWindow):
     def _create_status_bar(self):
         """Create the application status bar"""
 
-        self.editor.cursorPositionChanged.connect(
-            self._update_cursor_position
-        )
+        self.editor.cursorPositionChanged.connect(self._update_cursor_position)
 
         self._update_cursor_position()
-    
+
     def _update_cursor_position(self):
         """Display the current cursor position"""
 
@@ -162,15 +174,12 @@ class MainWindow(QMainWindow):
         theme = THEMES[self.current_theme]
 
         self.setStyleSheet(theme.application_stylesheet)
-        
+
         self.editor.set_line_number_colors(
-            theme.gutter_background,
-            theme.gutter_foreground
+            theme.gutter_background, theme.gutter_foreground
         )
-        self.editor.set_current_line_color(
-            theme.current_line_background
-        )
-        
+        self.editor.set_current_line_color(theme.current_line_background)
+
         self._update_preview()
 
     def _toggle_theme(self, checked):
@@ -184,13 +193,13 @@ class MainWindow(QMainWindow):
 
         vertical_position = self.preview.verticalScrollBar().value()
         horizontal_position = self.preview.horizontalScrollBar().value()
-        
+
         markdown_text = self.editor.toPlainText()
         markdown_html = self.markdown_parser.to_html(markdown_text)
 
         theme = THEMES[self.current_theme]
         preview_html = build_preview_html(markdown_html, theme)
-            
+
         self.preview.setHtml(preview_html)
 
         # Restore previous scroll position
@@ -199,15 +208,48 @@ class MainWindow(QMainWindow):
 
     def _update_window_title(self, modified=False):
         """Update the current window title with the file name and modification state"""
-    
+
         if self.current_file_path:
             file_name = self.current_file_path.name
         else:
             file_name = "Untitled"
-            
+
         modified_marker = "*" if modified else ""
-    
+
         self.setWindowTitle(f"{modified_marker}{file_name} - Markdown Text Editor")
+
+    def _show_find_bar(self, _checked=False):
+        """Display the search bar and prefill the selected text."""
+
+        selected_text = self.editor.textCursor().selectedText()
+
+        self.find_bar.show_bar(selected_text)
+        self._position_find_bar()
+
+    def _position_find_bar(self):
+        """Position the search bar in the editor's upper-right corner."""
+
+        self.find_bar.adjustSize()
+
+        x_position = max(
+            8,
+            self.editor.width() - self.find_bar.width() - 12,
+        )
+
+        self.find_bar.move(x_position, 12)
+        self.find_bar.raise_()
+
+    def eventFilter(self, watched, event):
+        """Keep the search bar positioned when the editor is resized."""
+
+        if (
+            watched is self.editor
+            and event.type() == QEvent.Type.Resize
+            and self.find_bar.isVisible()
+        ):
+            self._position_find_bar()
+
+        return super().eventFilter(watched, event)
 
     def _confirm_save_changes(self) -> bool:
         """Ask whether unsaved changes should be saved or discarded"""
@@ -257,10 +299,7 @@ class MainWindow(QMainWindow):
         self.current_file_path = file_path
         self.editor.setPlainText(content)
         self.editor.document().setModified(False)
-        self.statusBar().showMessage(
-            "File opened successfully",
-            self.MESSAGE_TIMEOUT
-        )
+        self.statusBar().showMessage("File opened successfully", self.MESSAGE_TIMEOUT)
 
     def _save_file(self) -> bool:
         """Save the current document"""
@@ -308,10 +347,7 @@ class MainWindow(QMainWindow):
             return False
 
         self.editor.document().setModified(False)
-        self.statusBar().showMessage(
-            "File saved successfully",
-            self.MESSAGE_TIMEOUT
-        )
+        self.statusBar().showMessage("File saved successfully", self.MESSAGE_TIMEOUT)
         return True
 
     def closeEvent(self, event):

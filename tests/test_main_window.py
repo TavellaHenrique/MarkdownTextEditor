@@ -171,3 +171,51 @@ def test_save_file_handles_write_error(main_window, tmp_path, monkeypatch):
     assert result is False
     assert main_window.editor.document().isModified() is True
     assert not file_path.exists()
+
+
+def test_find_action_exists(main_window):
+    """Verify that the Find action exists with the correct shortcut."""
+
+    edit_menu = next(
+        action.menu()
+        for action in main_window.menuBar().actions()
+        if action.text() == "Edit"
+    )
+
+    find_action = next(
+        action for action in edit_menu.actions() if action.text() == "Find"
+    )
+
+    assert find_action.shortcut().toString() == "Ctrl+F"
+
+
+def test_show_find_bar(main_window, qtbot):
+    """Verify that the search bar opens over the editor."""
+
+    main_window.show()
+    qtbot.waitExposed(main_window)
+
+    main_window.editor.setPlainText("Markdown Text Editor")
+
+    cursor = main_window.editor.textCursor()
+    cursor.select(cursor.SelectionType.WordUnderCursor)
+    main_window.editor.setTextCursor(cursor)
+
+    main_window._show_find_bar()
+
+    assert main_window.find_bar.isVisible()
+    assert main_window.find_bar.search_input.text() == "Markdown"
+    assert main_window.find_bar.parentWidget() is main_window.editor
+
+
+def test_find_bar_close_restores_editor_focus(main_window, qtbot):
+    """Verify that closing the search bar restores editor focus."""
+
+    main_window.show()
+    qtbot.waitExposed(main_window)
+
+    main_window._show_find_bar()
+    main_window.find_bar.close_bar()
+
+    assert not main_window.find_bar.isVisible()
+    assert main_window.editor.hasFocus()
