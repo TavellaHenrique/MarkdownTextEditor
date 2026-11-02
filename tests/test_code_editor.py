@@ -1,4 +1,3 @@
-
 from PySide6.QtGui import QTextCursor
 
 from markdown_editor.code_editor import CodeEditor

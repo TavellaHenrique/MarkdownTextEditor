@@ -1,4 +1,3 @@
-
 import pytest
 
 from markdown_editor.file_manager import FileManager

@@ -1,4 +1,3 @@
-
 from PySide6.QtCore import QRect, QSize, Qt
 from PySide6.QtGui import QColor, QPainter, QTextFormat
 from PySide6.QtWidgets import QPlainTextEdit, QTextEdit, QWidget
@@ -19,6 +18,7 @@ class LineNumberArea(QWidget):
         """Delegate line number painting to the editor."""
         self.editor.line_number_area_paint_event(event)
 
+
 class CodeEditor(QPlainTextEdit):
     """Text editor with a line number gutter."""
 
@@ -31,9 +31,7 @@ class CodeEditor(QPlainTextEdit):
         self._gutter_foreground = QColor("#666666")
 
         # Connect document and viewport events.
-        self.blockCountChanged.connect(
-            self.update_line_number_area_width
-        )
+        self.blockCountChanged.connect(self.update_line_number_area_width)
         self.updateRequest.connect(self.update_line_number_area)
 
         # Initialize the gutter width.
@@ -50,7 +48,7 @@ class CodeEditor(QPlainTextEdit):
 
         self._current_line_background = QColor(color)
         self.highlight_current_line()
-    
+
     def highlight_current_line(self):
         """Highlight the line containing the text cursor"""
 
@@ -76,9 +74,7 @@ class CodeEditor(QPlainTextEdit):
 
     def update_line_number_area_width(self, _block_count=0):
         """Reserve space for the line number area."""
-        self.setViewportMargins(
-            self.line_number_area_width(), 0, 0, 0
-        )
+        self.setViewportMargins(self.line_number_area_width(), 0, 0, 0)
 
     def update_line_number_area(self, rect, dy):
         """Update the gutter when the editor viewport changes."""
@@ -109,7 +105,7 @@ class CodeEditor(QPlainTextEdit):
                 content_rect.height(),
             )
         )
-    
+
     def line_number_area_paint_event(self, event):
         """Draw line numbers for all visible text blocks."""
         painter = QPainter(self.line_number_area)
@@ -123,9 +119,7 @@ class CodeEditor(QPlainTextEdit):
         block_number = block.blockNumber()
 
         top = round(
-            self.blockBoundingGeometry(block)
-            .translated(self.contentOffset())
-            .top()
+            self.blockBoundingGeometry(block).translated(self.contentOffset()).top()
         )
 
         bottom = top + round(self.blockBoundingRect(block).height())

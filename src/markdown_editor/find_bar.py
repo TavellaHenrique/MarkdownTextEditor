@@ -1,4 +1,3 @@
-
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
@@ -58,9 +57,7 @@ class FindBar(QFrame):
         self.options_button.setObjectName("optionsButton")
         self.options_button.setText("⋮")
         self.options_button.setToolTip("Search options")
-        self.options_button.setPopupMode(
-            QToolButton.ToolButtonPopupMode.InstantPopup
-        )
+        self.options_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
 
         self.close_button = QToolButton()
         self.close_button.setObjectName("closeButton")
@@ -122,15 +119,9 @@ class FindBar(QFrame):
         self.next_button.clicked.connect(self.next_requested)
         self.close_button.clicked.connect(self.close_bar)
 
-        self.highlight_all_action.toggled.connect(
-            self.highlight_all_changed
-        )
-        self.case_sensitive_action.toggled.connect(
-            self.case_sensitive_changed
-        )
-        self.accent_sensitive_action.toggled.connect(
-            self.accent_sensitive_changed
-        )
+        self.highlight_all_action.toggled.connect(self.highlight_all_changed)
+        self.case_sensitive_action.toggled.connect(self.case_sensitive_changed)
+        self.accent_sensitive_action.toggled.connect(self.accent_sensitive_changed)
 
     def _create_shortcuts(self):
         """Configure keyboard shortcuts available while the bar is visible."""
@@ -139,18 +130,14 @@ class FindBar(QFrame):
             QKeySequence(Qt.Key.Key_Escape),
             self,
         )
-        self.escape_shortcut.setContext(
-            Qt.ShortcutContext.WidgetWithChildrenShortcut
-        )
+        self.escape_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.escape_shortcut.activated.connect(self.close_bar)
 
         self.previous_shortcut = QShortcut(
             QKeySequence("Shift+Return"),
             self,
         )
-        self.previous_shortcut.setContext(
-            Qt.ShortcutContext.WidgetWithChildrenShortcut
-        )
+        self.previous_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.previous_shortcut.activated.connect(self.previous_requested)
 
     def show_bar(self, selected_text: str = ""):

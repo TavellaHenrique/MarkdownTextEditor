@@ -1,4 +1,3 @@
-
 import pytest
 
 from markdown_editor.markdown_parser import MarkdownParser

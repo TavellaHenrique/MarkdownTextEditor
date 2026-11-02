@@ -1,4 +1,3 @@
-
 from dataclasses import dataclass
 
 
@@ -87,7 +86,7 @@ DARK_THEME = Theme(
     code_foreground="#f1f3f4",
     gutter_background="#292a2d",
     gutter_foreground="#9aa0a6",
-    current_line_background="#283c57"
+    current_line_background="#283c57",
 )
 
 
