@@ -258,11 +258,21 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"{modified_marker}{file_name} - Markdown Text Editor")
 
     def _show_find_bar(self, _checked=False):
-        """Display the search bar and prefill the selected text."""
+        """Display the search bar or update its query with selected text."""
 
         selected_text = self.editor.textCursor().selectedText()
 
-        self.find_bar.show_bar(selected_text)
+        if self.find_bar.isVisible():
+            if selected_text:
+                # Update the query and trigger a new search.
+                self.find_bar.search_input.setText(selected_text)
+                self.find_bar.search_input.selectAll()
+
+            self.find_bar.search_input.setFocus()
+        else:
+            # Preserve the initial behavior without automatically searching.
+            self.find_bar.show_bar(selected_text)
+
         self._position_find_bar()
 
     def _position_find_bar(self):

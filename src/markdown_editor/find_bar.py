@@ -112,7 +112,8 @@ class FindBar(QFrame):
     def _connect_signals(self):
         """Connect widget events to the component signals."""
 
-        self.search_input.textChanged.connect(self.search_text_changed)
+        # Forward text changes through the component signal.
+        self.search_input.textChanged.connect(self.search_text_changed.emit)
         self.search_input.returnPressed.connect(self.next_requested)
 
         self.previous_button.clicked.connect(self.previous_requested)
