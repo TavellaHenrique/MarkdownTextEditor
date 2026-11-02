@@ -206,7 +206,7 @@ class MainWindow(QMainWindow):
             
         modified_marker = "*" if modified else ""
     
-        self.setWindowTitle(f"{modified_marker} {file_name} - Markdown Text Editor")
+        self.setWindowTitle(f"{modified_marker}{file_name} - Markdown Text Editor")
 
     def _confirm_save_changes(self) -> bool:
         """Ask whether unsaved changes should be saved or discarded"""
