@@ -1,2 +1,0 @@
-[console_scripts]
-markdown-text-editor = markdown_editor.main:main

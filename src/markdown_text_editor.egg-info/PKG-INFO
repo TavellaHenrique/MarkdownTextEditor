@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: markdown-text-editor
-Version: 0.1.0
-Summary: A simple desktop Markdown Editor
-Requires-Python: >=3.10
-Requires-Dist: PySide6
-Requires-Dist: markdown-it-py
-Provides-Extra: dev
-Requires-Dist: pytest; extra == "dev"
