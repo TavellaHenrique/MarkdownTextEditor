@@ -200,7 +200,7 @@ class MainWindow(QMainWindow):
         """Update the current window title with the file name and modification state"""
     
         if self.current_file_path:
-            file_name = self.current_file_path
+            file_name = self.current_file_path.name
         else:
             file_name = "Untitled"
             
