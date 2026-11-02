@@ -16,6 +16,7 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-qt",
+    "ruff",
 ]
 
 [project.scripts]
@@ -26,3 +27,14 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle
+    "F",  # Pyflakes
+    "I",  # isort
+]
