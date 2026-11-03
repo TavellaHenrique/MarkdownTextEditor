@@ -15,7 +15,11 @@ from markdown_editor.code_editor import CodeEditor
 from markdown_editor.file_manager import FileManager
 from markdown_editor.find_bar import FindBar
 from markdown_editor.markdown_parser import MarkdownParser
-from markdown_editor.themes import THEMES, build_preview_html
+from markdown_editor.themes import (
+    THEMES,
+    build_preview_html,
+    load_application_stylesheet,
+)
 
 
 class MainWindow(QMainWindow):
@@ -191,13 +195,13 @@ class MainWindow(QMainWindow):
 
         view_menu.addAction(preview_action)
 
-        theme_action = QAction("Dark Theme", self)
-        theme_action.setShortcut("Ctrl+Shift+T")
-        theme_action.setCheckable(True)
-        theme_action.setChecked(True)
-        theme_action.toggled.connect(self._toggle_theme)
+        self.theme_action = QAction("Dark Theme", self)
+        self.theme_action.setShortcut("Ctrl+Shift+T")
+        self.theme_action.setCheckable(True)
+        self.theme_action.setChecked(True)
+        self.theme_action.toggled.connect(self._toggle_theme)
 
-        view_menu.addAction(theme_action)
+        view_menu.addAction(self.theme_action)
 
         view_menu.addSeparator()
 
@@ -234,16 +238,18 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Line: {line} | Column: {column}")
 
     def _apply_theme(self):
-        """Apply the selected application theme"""
-
+        """Apply the selected application theme."""
         theme = THEMES[self.current_theme]
 
-        self.setStyleSheet(theme.application_stylesheet)
+        self.setStyleSheet(load_application_stylesheet(theme))
 
         self.editor.set_line_number_colors(
-            theme.gutter_background, theme.gutter_foreground
+            theme.gutter_background,
+            theme.gutter_foreground,
         )
-        self.editor.set_current_line_color(theme.current_line_background)
+        self.editor.set_current_line_color(
+            theme.current_line_background,
+        )
 
         self._update_preview()
 

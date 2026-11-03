@@ -1,0 +1,24 @@
+QMainWindow {
+    background-color: $background;
+}
+
+QPlainTextEdit, QTextBrowser {
+    background-color: $code_background;
+    color: $foreground;
+    border: 1px solid $border;
+    padding: 8px;
+}
+
+QMenuBar {
+    background-color: $menu_background;
+    color: $foreground;
+}
+
+QMenuBar::item:selected {
+    background-color: $menu_selected;
+}
+
+QStatusBar {
+    background-color: $menu_background;
+    color: $muted_foreground;
+}

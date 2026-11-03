@@ -25,6 +25,12 @@ markdown-text-editor = "markdown_editor.main:main"
 [tools.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+markdown_editor = [
+    "styles/*.qss",
+    "styles/*.css",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 

@@ -1,4 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from importlib.resources import files
+from string import Template
 
 from markdown_editor.typography import (
     PREVIEW_FONT_FAMILY,
@@ -10,88 +12,46 @@ from markdown_editor.typography import (
 class Theme:
     """Store the visual configuration of an application theme."""
 
-    application_stylesheet: str
     background: str
     foreground: str
     code_background: str
     code_foreground: str
+    border: str
+    menu_background: str
+    menu_selected: str
+    muted_foreground: str
     gutter_background: str
     gutter_foreground: str
     current_line_background: str
 
 
 LIGHT_THEME = Theme(
-    application_stylesheet="""
-        QMainWindow {
-            background-color: #f5f5f5;
-        }
-
-        QPlainTextEdit, QTextBrowser {
-            background-color: #ffffff;
-            color: #242424;
-            border: 1px solid #d0d0d0;
-            padding: 8px;
-        }
-
-        QMenuBar {
-            background-color: #eeeeee;
-            color: #242424;
-        }
-
-        QMenuBar::item:selected {
-            background-color: #dcdcdc;
-        }
-
-        QStatusBar {
-            background-color: #eeeeee;
-            color: #555555;
-        }
-    """,
-    background="#ffffff",
+    background="#f5f5f5",
     foreground="#242424",
-    code_background="#ff7777",
-    code_foreground="#CECECE",
+    code_background="#ffffff",
+    code_foreground="#242424",
+    border="#d0d0d0",
+    menu_background="#eeeeee",
+    menu_selected="#dcdcdc",
+    muted_foreground="#666666",
     gutter_background="#eeeeee",
     gutter_foreground="#666666",
-    current_line_background="#ff7777",
+    current_line_background="#f1f5f9",
 )
 
 DARK_THEME = Theme(
-    application_stylesheet="""
-        QMainWindow {
-            background-color: #202124;
-        }
-
-        QPlainTextEdit, QTextBrowser {
-            background-color: #292a2d;
-            color: #e8eaed;
-            border: 1px solid #44464a;
-            padding: 8px;
-        }
-
-        QMenuBar {
-            background-color: #292a2d;
-            color: #e8eaed;
-        }
-
-        QMenuBar::item:selected {
-            background-color: #44464a;
-        }
-
-        QStatusBar {
-            background-color: #292a2d;
-            color: #bdc1c6;
-        }
-    """,
-    background="#292a2d",
+    background="#202124",
     foreground="#e8eaed",
-    code_background="#283c57",
-    code_foreground="#f1f3f4",
+    code_background="#292a2d",
+    code_foreground="#e8eaed",
+    border="#44464a",
+    menu_background="#292a2d",
+    menu_selected="#44464a",
+    muted_foreground="#9aa0a6",
     gutter_background="#292a2d",
     gutter_foreground="#9aa0a6",
     current_line_background="#283c57",
 )
-
 
 THEMES = {
     "light": LIGHT_THEME,
@@ -99,78 +59,57 @@ THEMES = {
 }
 
 
-PREVIEW_CSS = """
-    body {
-        font-family: __PREVIEW_FONT_FAMILY__;
-        font-size: __PREVIEW_FONT_SIZE__px;
-        line-height: 1.6;
-        max-width: 900px;
-        margin: 24px auto;
-        padding: 0 20px;
-    }
+def _read_style_file(filename: str) -> str:
+    """Read a stylesheet packaged with the application."""
+    style_path = files("markdown_editor").joinpath(
+        "styles",
+        filename,
+    )
 
-    h1, h2, h3, h4 {
-        margin-top: 24px;
-        margin-bottom: 12px;
-    }
+    return style_path.read_text(encoding="utf-8")
 
-    p {
-        margin-bottom: 16px;
-    }
 
-    code {
-        padding: 2px 5px;
-        border-radius: 4px;
-    }
+def load_application_stylesheet(theme: Theme) -> str:
+    """Load the Qt stylesheet using the selected theme."""
+    stylesheet = _read_style_file("application.qss")
 
-    pre {
-        padding: 12px;
-        border-radius: 6px;
-        overflow-x: auto;
-    }
+    return Template(stylesheet).substitute(asdict(theme))
 
-    pre code {
-        background-color: transparent;
-        color: inherit;
-        padding: 0;
-    }
 
-    blockquote {
-        border-left: 4px solid #888888;
-        margin-left: 0;
-        padding-left: 16px;
-        color: #888888;
-    }
-
-    img {
-        max-width: 100%;
-    }
-"""
+def load_preview_css() -> str:
+    """Load the Markdown preview stylesheet."""
+    return _read_style_file("preview.css")
 
 
 def build_preview_html(markdown_html: str, theme: Theme) -> str:
-    """Build the preview HTML using the selected theme."""
+    """Build the Markdown preview using the selected theme."""
+    preview_css = load_preview_css()
 
-    preview_css = PREVIEW_CSS.replace(
-        "__PREVIEW_FONT_FAMILY__", PREVIEW_FONT_FAMILY
-    ).replace("__PREVIEW_FONT_SIZE__", str(PREVIEW_FONT_SIZE))
+    theme_variables = {
+        "font-family": PREVIEW_FONT_FAMILY,
+        "font-size": f"{PREVIEW_FONT_SIZE}px",
+        "background": theme.background,
+        "foreground": theme.foreground,
+        "code-background": theme.code_background,
+        "code-foreground": theme.code_foreground,
+        "muted-foreground": theme.muted_foreground,
+    }
+
+    css_variables = "\n".join(
+        f"    --{name}: {value};" for name, value in theme_variables.items()
+    )
 
     return f"""
     <!DOCTYPE html>
     <html>
     <head>
+        <meta charset="UTF-8">
         <style>
+            :root {{
+{css_variables}
+            }}
+
             {preview_css}
-
-            body {{
-                background-color: {theme.background};
-                color: {theme.foreground};
-            }}
-
-            code, pre, pre code {{
-                background-color: {theme.code_background};
-                color: {theme.code_foreground};
-            }}
         </style>
     </head>
     <body>
