@@ -26,7 +26,7 @@ def test_window_initialization(main_window):
     """Verify that the main window initializes correctly."""
     assert main_window.editor is not None
     assert main_window.preview is not None
-    assert main_window.current_file_path is None
+    assert main_window.document_controller.current_file_path is None
 
 
 def test_preview_updates_when_editor_text_changes(main_window):
@@ -57,7 +57,7 @@ def test_save_file_as_adds_markdown_extension(main_window, tmp_path, monkeypatch
     assert result is True
     assert expected_path.exists()
     assert expected_path.read_text(encoding="utf-8") == "# Saved Document"
-    assert main_window.current_file_path == expected_path
+    assert main_window.document_controller.current_file_path == expected_path
     assert main_window.editor.document().isModified() is False
 
 
@@ -76,7 +76,7 @@ def test_open_file_loads_content(main_window, tmp_path, monkeypatch):
     main_window._open_file()
 
     assert main_window.editor.toPlainText() == expected_content
-    assert main_window.current_file_path == file_path
+    assert main_window.document_controller.current_file_path == file_path
     assert main_window.editor.document().isModified() is False
 
 
@@ -115,7 +115,10 @@ def test_open_file_handles_read_error(main_window, tmp_path, monkeypatch):
     existing_path = tmp_path / "existing.md"
     selected_path = tmp_path / "restricted.md"
 
-    main_window.current_file_path = existing_path
+    main_window.document_controller.save_document(
+        existing_path,
+        "Existing content",
+    )
     main_window.editor.setPlainText("Existing content")
     main_window.editor.document().setModified(False)
 
@@ -128,7 +131,7 @@ def test_open_file_handles_read_error(main_window, tmp_path, monkeypatch):
         raise PermissionError("Access denied")
 
     monkeypatch.setattr(
-        main_window.file_manager,
+        main_window.document_controller._file_manager,
         "read_file",
         raise_permission_error,
     )
@@ -141,14 +144,15 @@ def test_open_file_handles_read_error(main_window, tmp_path, monkeypatch):
     main_window._open_file()
 
     assert main_window.editor.toPlainText() == "Existing content"
-    assert main_window.current_file_path == existing_path
+    assert main_window.document_controller.current_file_path == existing_path
 
 
 def test_save_file_handles_write_error(main_window, tmp_path, monkeypatch):
     """Verify that write errors preserve the modified document state."""
     file_path = tmp_path / "restricted.md"
 
-    main_window.current_file_path = file_path
+    main_window.document_controller._current_file_path = file_path
+
     main_window.editor.setPlainText("Modified content")
     main_window.editor.document().setModified(True)
 
@@ -156,7 +160,7 @@ def test_save_file_handles_write_error(main_window, tmp_path, monkeypatch):
         raise PermissionError("Access denied")
 
     monkeypatch.setattr(
-        main_window.file_manager,
+        main_window.document_controller._file_manager,
         "save_file",
         raise_permission_error,
     )
