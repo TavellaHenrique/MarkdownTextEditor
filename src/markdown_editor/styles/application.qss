@@ -9,13 +9,49 @@ QPlainTextEdit, QTextBrowser {
     padding: 8px;
 }
 
+/* Menu bar */
 QMenuBar {
     background-color: $menu_background;
     color: $foreground;
 }
 
+QMenuBar::item {
+    background-color: transparent;
+    color: $foreground;
+    padding: 5px 10px;
+}
+
 QMenuBar::item:selected {
     background-color: $menu_selected;
+}
+
+/* Dropdown menus */
+QMenu {
+    background-color: $menu_background;
+    color: $foreground;
+    border: 1px solid $border;
+    padding: 4px;
+}
+
+QMenu::item {
+    background-color: transparent;
+    color: $foreground;
+    padding: 6px 28px 6px 12px;
+}
+
+QMenu::item:selected {
+    background-color: $menu_selected;
+    color: $foreground;
+}
+
+QMenu::item:disabled {
+    color: $muted_foreground;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: $border;
+    margin: 4px 6px;
 }
 
 QStatusBar {
