@@ -14,10 +14,9 @@ from PySide6.QtWidgets import (
 from markdown_editor.code_editor import CodeEditor
 from markdown_editor.document_controller import DocumentController
 from markdown_editor.find_bar import FindBar
-from markdown_editor.markdown_parser import MarkdownParser
+from markdown_editor.preview_controller import PreviewController
 from markdown_editor.theme_controller import ThemeController
 from markdown_editor.themes import (
-    build_preview_html,
     load_application_stylesheet,
 )
 
@@ -34,9 +33,6 @@ class MainWindow(QMainWindow):
 
         # Initialize document management.
         self.document_controller = DocumentController()
-
-        # Initialize the Markdown parser
-        self.markdown_parser = MarkdownParser()
 
         self.resize(self.INITIAL_WIDTH, self.INITIAL_HEIGHT)
 
@@ -130,10 +126,14 @@ class MainWindow(QMainWindow):
         self.editor.setFocus()
 
     def _create_preview(self):
-        """Create the HTML preview"""
-
+        """Create the HTML preview."""
         self.preview = QTextBrowser()
         self.preview.setOpenExternalLinks(True)
+
+        self.preview_controller = PreviewController(
+            self.preview,
+            self.theme_controller,
+        )
 
     def _create_splitter(self):
         """Arrange the editor and preview horizontally"""
@@ -293,22 +293,8 @@ class MainWindow(QMainWindow):
         self._apply_theme()
 
     def _update_preview(self):
-        """Update the HTML preview using the current Markdown text"""
-
-        vertical_position = self.preview.verticalScrollBar().value()
-        horizontal_position = self.preview.horizontalScrollBar().value()
-
-        markdown_text = self.editor.toPlainText()
-        markdown_html = self.markdown_parser.to_html(markdown_text)
-
-        theme = self.theme_controller.current_theme
-        preview_html = build_preview_html(markdown_html, theme)
-
-        self.preview.setHtml(preview_html)
-
-        # Restore previous scroll position
-        self.preview.verticalScrollBar().setValue(vertical_position)
-        self.preview.horizontalScrollBar().setValue(horizontal_position)
+        """Update the preview using the current Markdown text."""
+        self.preview_controller.update_preview(self.editor.toPlainText())
 
     def _show_find_bar(self, _checked=False):
         """Display the search bar and search the selected text."""
