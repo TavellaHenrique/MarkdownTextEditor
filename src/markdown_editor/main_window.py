@@ -170,17 +170,29 @@ class MainWindow(QMainWindow):
         """Create edit menu on Menu Bar"""
 
         edit_menu = self.menuBar().addMenu("Edit")
-        actions = [
+        change_control_actions = [
             ("Undo", "Ctrl+Z", self.editor.undo),
             ("Redo", "Ctrl+Y", self.editor.redo),
+        ]
+
+        text_edit_actions = [
             ("Cut", "Ctrl+X", self.editor.cut),
             ("Copy", "Ctrl+C", self.editor.copy),
             ("Paste", "Ctrl+V", self.editor.paste),
             ("Select All", "Ctrl+A", self.editor.selectAll),
+        ]
+
+        text_find_actions = [
             ("Find", "Ctrl+F", self._show_find_bar),
         ]
 
-        self._bind_actions_to_menu(actions, edit_menu)
+        self._bind_actions_to_menu(change_control_actions, edit_menu)
+        edit_menu.addSeparator()
+
+        self._bind_actions_to_menu(text_edit_actions, edit_menu)
+        edit_menu.addSeparator()
+
+        self._bind_actions_to_menu(text_find_actions, edit_menu)
 
     def _create_view_menu(self):
         """Create view menu on Menu Bar"""
