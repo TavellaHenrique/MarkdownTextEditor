@@ -92,7 +92,7 @@ def test_confirm_save_changes_discards_modifications(main_window, monkeypatch):
         lambda *args: QMessageBox.StandardButton.Discard,
     )
 
-    result = main_window._confirm_save_changes()
+    result = main_window.window_controller.confirm_save_changes()
 
     assert result is True
 
@@ -107,7 +107,7 @@ def test_confirm_save_changes_cancel(main_window, monkeypatch):
         lambda *args: QMessageBox.StandardButton.Cancel,
     )
 
-    result = main_window._confirm_save_changes()
+    result = main_window.window_controller.confirm_save_changes()
 
     assert result is False
 

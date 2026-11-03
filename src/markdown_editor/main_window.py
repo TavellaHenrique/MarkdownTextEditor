@@ -20,6 +20,7 @@ from markdown_editor.theme_controller import ThemeController
 from markdown_editor.themes import (
     load_application_stylesheet,
 )
+from markdown_editor.window_controller import WindowController
 
 
 class MainWindow(QMainWindow):
@@ -40,13 +41,14 @@ class MainWindow(QMainWindow):
         self.theme_controller = ThemeController(initial_theme="dark")
 
         self._create_editor()
+        self._create_window_controller()
         self._create_find_bar()
         self._create_preview()
         self._create_splitter()
         self._create_menu_bar()
         self._create_status_bar()
         self._create_search_controller()
-        self._update_window_title()
+        self.window_controller.update_window_title()
         self._apply_theme()
 
     def _create_editor(self):
@@ -58,8 +60,15 @@ class MainWindow(QMainWindow):
         # Send a signal when changes on the text are detected
         self.editor.textChanged.connect(self._update_preview)
 
-        # Send a signal when document changes
-        self.editor.document().modificationChanged.connect(self._update_window_title)
+    def _create_window_controller(self):
+        """Initialize the window controller."""
+        self.window_controller = WindowController(
+            document=self.editor.document(),
+            dialog_parent=self,
+            get_file_path=lambda: self.document_controller.current_file_path,
+            save_callback=self._save_file,
+            set_window_title=self.setWindowTitle,
+        )
 
     def _create_find_bar(self):
         """Create and configure the floating search bar."""
@@ -307,29 +316,9 @@ class MainWindow(QMainWindow):
 
         return super().eventFilter(watched, event)
 
-    def _confirm_save_changes(self) -> bool:
-        """Ask whether unsaved changes should be saved or discarded."""
-        if not self.editor.document().isModified():
-            return True
-
-        answer = QMessageBox.warning(
-            self,
-            "Unsaved Changes",
-            "This document has unsaved changes. Do you want to save them?",
-            QMessageBox.StandardButton.Save
-            | QMessageBox.StandardButton.Discard
-            | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Save,
-        )
-
-        if answer == QMessageBox.StandardButton.Save:
-            return self._save_file()
-
-        return answer == QMessageBox.StandardButton.Discard
-
     def _open_file(self):
         """Open a Markdown file."""
-        if not self._confirm_save_changes():
+        if not self.window_controller.confirm_save_changes():
             return
 
         file_path, _ = QFileDialog.getOpenFileName(
@@ -355,7 +344,7 @@ class MainWindow(QMainWindow):
         self.editor.setPlainText(content)
         self.editor.document().setModified(False)
 
-        self._update_window_title()
+        self.window_controller.update_window_title()
         self.statusBar().showMessage(
             f"Opened: {file_path}",
             3000,
@@ -408,7 +397,7 @@ class MainWindow(QMainWindow):
 
         self.editor.document().setModified(False)
 
-        self._update_window_title()
+        self.window_controller.update_window_title()
         self.statusBar().showMessage(
             f"Saved: {file_path}",
             self.MESSAGE_TIMEOUT,
@@ -416,22 +405,9 @@ class MainWindow(QMainWindow):
 
         return True
 
-    def _update_window_title(self):
-        """Update the window title based on document state."""
-        file_path = self.document_controller.current_file_path
-
-        file_name = file_path.name if file_path else "Untitled"
-
-        modified = self.editor.document().isModified()
-
-        title = f"{file_name}{' *' if modified else ''} - Markdown Text Editor"
-
-        self.setWindowTitle(title)
-
     def closeEvent(self, event):
-        """Prevent closing the application with unsaved changes"""
-
-        if self._confirm_save_changes():
+        """Prevent closing the application with unsaved changes."""
+        if self.window_controller.can_close():
             event.accept()
         else:
             event.ignore()
