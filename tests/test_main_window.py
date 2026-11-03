@@ -1,6 +1,8 @@
 import pytest
 from PySide6.QtWidgets import QMessageBox
 
+from markdown_editor.document_controller import DocumentController
+from markdown_editor.file_manager import FileManager
 from markdown_editor.main_window import MainWindow
 
 
@@ -151,16 +153,19 @@ def test_save_file_handles_write_error(main_window, tmp_path, monkeypatch):
     """Verify that write errors preserve the modified document state."""
     file_path = tmp_path / "restricted.md"
 
-    main_window.document_controller._current_file_path = file_path
+    file_manager = FileManager()
+    controller = DocumentController(
+        file_manager=file_manager,
+        initial_file_path=file_path,
+    )
 
-    main_window.editor.setPlainText("Modified content")
-    main_window.editor.document().setModified(True)
+    main_window.document_controller = controller
 
     def raise_permission_error(file_path, content):
         raise PermissionError("Access denied")
 
     monkeypatch.setattr(
-        main_window.document_controller._file_manager,
+        file_manager,
         "save_file",
         raise_permission_error,
     )
@@ -170,10 +175,13 @@ def test_save_file_handles_write_error(main_window, tmp_path, monkeypatch):
         lambda *args: None,
     )
 
+    main_window.editor.setPlainText("Modified content")
+    main_window.editor.document().setModified(True)
+
     result = main_window._save_file()
 
     assert result is False
-    assert main_window.editor.document().isModified() is True
+    assert main_window.editor.document().isModified()
     assert not file_path.exists()
 
 

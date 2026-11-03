@@ -6,9 +6,19 @@ from markdown_editor.file_manager import FileManager
 class DocumentController:
     """Coordinate document loading, saving, and file path management."""
 
-    def __init__(self, file_manager: FileManager | None = None):
+    def __init__(
+        self,
+        file_manager: FileManager | None = None,
+        initial_file_path: Path | None = None,
+    ):
+        """Initialize document management dependencies and state."""
         self._file_manager = file_manager or FileManager()
-        self._current_file_path: Path | None = None
+        self._current_file_path = initial_file_path
+
+    @property
+    def file_manager(self) -> FileManager:
+        """Return the file manager used by the controller."""
+        return self._file_manager
 
     @property
     def current_file_path(self) -> Path | None:
