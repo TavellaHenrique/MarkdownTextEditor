@@ -1,11 +1,9 @@
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, Qt
-from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
     QFileDialog,
     QMainWindow,
-    QMenu,
     QMessageBox,
     QSplitter,
     QTextBrowser,
@@ -14,6 +12,7 @@ from PySide6.QtWidgets import (
 from markdown_editor.code_editor import CodeEditor
 from markdown_editor.document_controller import DocumentController
 from markdown_editor.find_bar import FindBar
+from markdown_editor.menu_controller import MenuController
 from markdown_editor.preview_controller import PreviewController
 from markdown_editor.search_controller import SearchController
 from markdown_editor.theme_controller import ThemeController
@@ -45,7 +44,7 @@ class MainWindow(QMainWindow):
         self._create_find_bar()
         self._create_preview()
         self._create_splitter()
-        self._create_menu_bar()
+        self._create_menu_controller()
         self._create_status_bar()
         self._create_search_controller()
         self.window_controller.update_window_title()
@@ -105,106 +104,41 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(splitter)
 
-    def _create_menu_bar(self):
-        """Create the application menu bar"""
-
-        self._create_file_menu()
-        self._create_edit_menu()
-        self._create_view_menu()
-
-    def _create_file_menu(self):
-        """Create file menu on Menu Bar"""
-
-        file_menu = self.menuBar().addMenu("File")
-        actions = [
+    def _create_menu_controller(self):
+        """Initialize the menu controller."""
+        file_actions = [
             ("Open", "Ctrl+O", self._open_file),
             ("Save", "Ctrl+S", self._save_file),
             ("Save As", "Ctrl+Shift+S", self._save_file_as),
         ]
 
-        self._bind_actions_to_menu(actions, file_menu)
-
-    def _create_edit_menu(self):
-        """Create edit menu on Menu Bar"""
-
-        edit_menu = self.menuBar().addMenu("Edit")
-        change_control_actions = [
+        edit_actions = [
             ("Undo", "Ctrl+Z", self.editor.undo),
             ("Redo", "Ctrl+Y", self.editor.redo),
-        ]
-
-        text_edit_actions = [
             ("Cut", "Ctrl+X", self.editor.cut),
             ("Copy", "Ctrl+C", self.editor.copy),
             ("Paste", "Ctrl+V", self.editor.paste),
             ("Select All", "Ctrl+A", self.editor.selectAll),
-        ]
-
-        text_find_actions = [
             ("Find", "Ctrl+F", self._show_find_bar),
         ]
 
-        self._bind_actions_to_menu(change_control_actions, edit_menu)
-        edit_menu.addSeparator()
-
-        self._bind_actions_to_menu(text_edit_actions, edit_menu)
-        edit_menu.addSeparator()
-
-        self._bind_actions_to_menu(text_find_actions, edit_menu)
-
-    def _create_view_menu(self):
-        """Create view menu on Menu Bar"""
-
-        view_menu = self.menuBar().addMenu("View")
-
-        preview_action = QAction("Show Preview", self)
-        preview_action.setShortcut("Ctrl+P")
-        preview_action.setCheckable(True)
-        preview_action.setChecked(True)
-        preview_action.toggled.connect(self.preview.setVisible)
-
-        view_menu.addAction(preview_action)
-
-        # Create the theme selection submenu.
-        theme_menu = view_menu.addMenu("Theme")
-        self.theme_action_group = QActionGroup(self)
-        self.theme_action_group.setExclusive(True)
-
-        self.theme_actions = {}
-
-        for theme_name in self.theme_controller.available_themes:
-            display_name = theme_name.replace("_", " ").replace("-", " ").title()
-
-            action = QAction(display_name, self)
-            action.setCheckable(True)
-            action.setChecked(theme_name == self.theme_controller.current_theme_name)
-
-            action.triggered.connect(
-                lambda checked, name=theme_name: (
-                    self._change_theme(name) if checked else None
-                )
-            )
-
-            self.theme_action_group.addAction(action)
-            theme_menu.addAction(action)
-            self.theme_actions[theme_name] = action
-
-        view_menu.addSeparator()
-
-        font_actions = [
+        view_actions = [
             ("Increase Font Size", "Ctrl+=", self.editor.increase_font_size),
             ("Decrease Font Size", "Ctrl+-", self.editor.decrease_font_size),
             ("Reset Font Size", "Ctrl+0", self.editor.reset_font_size),
         ]
 
-        self._bind_actions_to_menu(font_actions, view_menu)
-
-    def _bind_actions_to_menu(self, actions: list, menu: QMenu):
-        for text, shortcut, callback in actions:
-            action = QAction(text, self)
-            action.setShortcut(shortcut)
-            action.triggered.connect(callback)
-            menu.addAction(action)
+        self.menu_controller = MenuController(
+            menu_bar=self.menuBar(),
+            parent=self,
+            file_actions=file_actions,
+            edit_actions=edit_actions,
+            view_actions=view_actions,
+            theme_names=self.theme_controller.available_themes,
+            current_theme=self.theme_controller.current_theme_name,
+            on_theme_changed=self._change_theme,
+            on_preview_toggled=self.preview.setVisible,
+        )
 
     def _create_status_bar(self):
         """Create the application status bar"""
@@ -247,7 +181,7 @@ class MainWindow(QMainWindow):
         """Change the selected theme and refresh the application."""
         self.theme_controller.set_theme(theme_name)
 
-        self.theme_actions[theme_name].setChecked(True)
+        self.menu_controller.theme_actions[theme_name].setChecked(True)
 
         self._apply_theme()
 
