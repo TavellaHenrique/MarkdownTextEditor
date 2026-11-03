@@ -15,6 +15,7 @@ from markdown_editor.code_editor import CodeEditor
 from markdown_editor.document_controller import DocumentController
 from markdown_editor.find_bar import FindBar
 from markdown_editor.preview_controller import PreviewController
+from markdown_editor.search_controller import SearchController
 from markdown_editor.theme_controller import ThemeController
 from markdown_editor.themes import (
     load_application_stylesheet,
@@ -44,6 +45,7 @@ class MainWindow(QMainWindow):
         self._create_splitter()
         self._create_menu_bar()
         self._create_status_bar()
+        self._create_search_controller()
         self._update_window_title()
         self._apply_theme()
 
@@ -61,69 +63,17 @@ class MainWindow(QMainWindow):
 
     def _create_find_bar(self):
         """Create and configure the floating search bar."""
-
         self.find_bar = FindBar(self.editor)
 
-        # Connect search navigation signals.
-        self.find_bar.next_requested.connect(self._find_next)
-        self.find_bar.previous_requested.connect(self._find_previous)
-
-        # Connect search input and option signals.
-        self.find_bar.search_text_changed.connect(self._update_search)
-        self.find_bar.highlight_all_changed.connect(self._update_search)
-        self.find_bar.case_sensitive_changed.connect(self._update_search)
-        self.find_bar.accent_sensitive_changed.connect(self._update_search)
-
-        # Observe editor resizing to keep the search bar positioned.
         self.editor.installEventFilter(self)
 
-        # Clear search highlights and restore editor focus when closing.
-        self.find_bar.close_requested.connect(self._clear_search)
-
-    def _update_search(self, _value=None, preferred_selection=None):
-        """Execute the search and update the occurrence indicator."""
-
-        if preferred_selection is None:
-            # Preserve the current editor selection when it remains a valid match.
-            cursor = self.editor.textCursor()
-
-            if cursor.hasSelection():
-                preferred_selection = (
-                    cursor.selectionStart(),
-                    cursor.selectionEnd(),
-                )
-
-        search_text = self.find_bar.search_input.text()
-
-        match_count = self.editor.search_text(
-            search_text,
-            case_sensitive=self.find_bar.case_sensitive_action.isChecked(),
-            accent_sensitive=self.find_bar.accent_sensitive_action.isChecked(),
-            highlight_all=self.find_bar.highlight_all_action.isChecked(),
-            preferred_selection=preferred_selection,
+    def _create_search_controller(self):
+        """Initialize the search controller."""
+        self.search_controller = SearchController(
+            editor=self.editor,
+            find_bar=self.find_bar,
+            status_bar=self.statusBar(),
         )
-
-        self.find_bar.update_match_indicator(
-            self.editor.current_match_number,
-            match_count,
-        )
-
-        if search_text and match_count == 0:
-            self.statusBar().showMessage(
-                "No results found",
-                self.MESSAGE_TIMEOUT,
-            )
-        elif search_text:
-            self.statusBar().showMessage(
-                f"{match_count} matches found",
-                self.MESSAGE_TIMEOUT,
-            )
-
-    def _clear_search(self):
-        """Clear search results and restore editor focus."""
-
-        self.editor.search_text("")
-        self.editor.setFocus()
 
     def _create_preview(self):
         """Create the HTML preview."""
@@ -318,13 +268,17 @@ class MainWindow(QMainWindow):
                 self.find_bar.search_input.blockSignals(False)
 
                 self.find_bar.search_input.selectAll()
-                self._update_search(preferred_selection=preferred_selection)
+                self.search_controller.update_search(
+                    preferred_selection=preferred_selection
+                )
 
             self.find_bar.search_input.setFocus()
 
         else:
             self.find_bar.show_bar(selected_text)
-            self._update_search(preferred_selection=preferred_selection)
+            self.search_controller.update_search(
+                preferred_selection=preferred_selection
+            )
 
         self._position_find_bar()
 
@@ -340,26 +294,6 @@ class MainWindow(QMainWindow):
 
         self.find_bar.move(x_position, 12)
         self.find_bar.raise_()
-
-    def _find_next(self):
-        """Navigate to the next occurrence and update the indicator."""
-
-        self.editor.find_next()
-
-        self.find_bar.update_match_indicator(
-            self.editor.current_match_number,
-            self.editor.match_count,
-        )
-
-    def _find_previous(self):
-        """Navigate to the previous occurrence and update the indicator."""
-
-        self.editor.find_previous()
-
-        self.find_bar.update_match_indicator(
-            self.editor.current_match_number,
-            self.editor.match_count,
-        )
 
     def eventFilter(self, watched, event):
         """Keep the search bar positioned when the editor is resized."""
