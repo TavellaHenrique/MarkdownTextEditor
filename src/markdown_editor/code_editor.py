@@ -79,11 +79,6 @@ class CodeEditor(QPlainTextEdit):
         self._current_match_index = -1
         self._highlight_all_matches = False
 
-        # TODO Do colors match theme
-        # Define search highlight colors.
-        self._search_highlight_color = QColor("#665c00")
-        self._current_match_color = QColor("#d97706")
-
         # Connect document and viewport events.
         self.blockCountChanged.connect(self.update_line_number_area_width)
         self.updateRequest.connect(self.update_line_number_area)
@@ -91,11 +86,22 @@ class CodeEditor(QPlainTextEdit):
         # Initialize the gutter width.
         self.update_line_number_area_width()
 
+        # Initialize default search highlight colors.
+        self._search_highlight_color = QColor("#808080")
+        self._current_match_color = QColor("#686868")
+
         self._current_line_background = QColor("#f1f5f9")
         self.cursorPositionChanged.connect(self.highlight_current_line)
         self.cursorPositionChanged.connect(self.line_number_area.update)
 
         self.highlight_current_line()
+
+    def set_search_colors(self, highlight_color, current_match_color):
+        """Update search highlight colors according to the selected theme."""
+        self._search_highlight_color = QColor(highlight_color)
+        self._current_match_color = QColor(current_match_color)
+
+        self._update_extra_selections()
 
     def search_text(
         self,

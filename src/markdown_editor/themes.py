@@ -23,6 +23,8 @@ class Theme:
     gutter_background: str
     gutter_foreground: str
     current_line_background: str
+    search_highlight: str
+    current_match: str
 
 
 LIGHT_THEME = Theme(
@@ -37,6 +39,8 @@ LIGHT_THEME = Theme(
     gutter_background="#eeeeee",
     gutter_foreground="#666666",
     current_line_background="#f1f5f9",
+    search_highlight="#6eb4d4",
+    current_match="#7371e0",
 )
 
 DARK_THEME = Theme(
@@ -51,6 +55,8 @@ DARK_THEME = Theme(
     gutter_background="#292a2d",
     gutter_foreground="#9aa0a6",
     current_line_background="#283c57",
+    search_highlight="#E07D7D",
+    current_match="#e4713c",
 )
 
 THEMES = {

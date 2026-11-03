@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, Qt
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
     QFileDialog,
     QMainWindow,
@@ -15,8 +15,8 @@ from markdown_editor.code_editor import CodeEditor
 from markdown_editor.document_controller import DocumentController
 from markdown_editor.find_bar import FindBar
 from markdown_editor.markdown_parser import MarkdownParser
+from markdown_editor.theme_controller import ThemeController
 from markdown_editor.themes import (
-    THEMES,
     build_preview_html,
     load_application_stylesheet,
 )
@@ -40,7 +40,7 @@ class MainWindow(QMainWindow):
 
         self.resize(self.INITIAL_WIDTH, self.INITIAL_HEIGHT)
 
-        self.current_theme = "dark"
+        self.theme_controller = ThemeController(initial_theme="dark")
 
         self._create_editor()
         self._create_find_bar()
@@ -206,13 +206,29 @@ class MainWindow(QMainWindow):
 
         view_menu.addAction(preview_action)
 
-        self.theme_action = QAction("Dark Theme", self)
-        self.theme_action.setShortcut("Ctrl+Shift+T")
-        self.theme_action.setCheckable(True)
-        self.theme_action.setChecked(True)
-        self.theme_action.toggled.connect(self._toggle_theme)
+        # Create the theme selection submenu.
+        theme_menu = view_menu.addMenu("Theme")
+        self.theme_action_group = QActionGroup(self)
+        self.theme_action_group.setExclusive(True)
 
-        view_menu.addAction(self.theme_action)
+        self.theme_actions = {}
+
+        for theme_name in self.theme_controller.available_themes:
+            display_name = theme_name.replace("_", " ").replace("-", " ").title()
+
+            action = QAction(display_name, self)
+            action.setCheckable(True)
+            action.setChecked(theme_name == self.theme_controller.current_theme_name)
+
+            action.triggered.connect(
+                lambda checked, name=theme_name: (
+                    self._change_theme(name) if checked else None
+                )
+            )
+
+            self.theme_action_group.addAction(action)
+            theme_menu.addAction(action)
+            self.theme_actions[theme_name] = action
 
         view_menu.addSeparator()
 
@@ -249,8 +265,8 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Line: {line} | Column: {column}")
 
     def _apply_theme(self):
-        """Apply the selected application theme."""
-        theme = THEMES[self.current_theme]
+        """Apply the currently selected application theme."""
+        theme = self.theme_controller.current_theme
 
         self.setStyleSheet(load_application_stylesheet(theme))
 
@@ -261,13 +277,19 @@ class MainWindow(QMainWindow):
         self.editor.set_current_line_color(
             theme.current_line_background,
         )
+        self.editor.set_search_colors(
+            theme.search_highlight,
+            theme.current_match,
+        )
 
         self._update_preview()
 
-    def _toggle_theme(self, checked):
-        """Switch between light and dark themes"""
+    def _change_theme(self, theme_name: str):
+        """Change the selected theme and refresh the application."""
+        self.theme_controller.set_theme(theme_name)
 
-        self.current_theme = "dark" if checked else "light"
+        self.theme_actions[theme_name].setChecked(True)
+
         self._apply_theme()
 
     def _update_preview(self):
@@ -279,7 +301,7 @@ class MainWindow(QMainWindow):
         markdown_text = self.editor.toPlainText()
         markdown_html = self.markdown_parser.to_html(markdown_text)
 
-        theme = THEMES[self.current_theme]
+        theme = self.theme_controller.current_theme
         preview_html = build_preview_html(markdown_html, theme)
 
         self.preview.setHtml(preview_html)
