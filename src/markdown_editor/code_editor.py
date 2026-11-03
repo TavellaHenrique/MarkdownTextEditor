@@ -33,6 +33,11 @@ class LineNumberArea(QWidget):
         """Delegate line number painting to the editor."""
         self.editor.line_number_area_paint_event(event)
 
+    def update_font(self):
+        """Synchronize the gutter font with the editor font."""
+        self.setFont(self.editor.font())
+        self.update()
+
 
 class CodeEditor(QPlainTextEdit):
     """Text editor with a line number gutter."""
@@ -319,7 +324,8 @@ class CodeEditor(QPlainTextEdit):
     def line_number_area_width(self):
         """Calculate the required width for line numbers."""
         digits = len(str(max(1, self.blockCount())))
-        digit_width = self.fontMetrics().horizontalAdvance("9")
+        font_metrics = self.line_number_area.fontMetrics()
+        digit_width = font_metrics.horizontalAdvance("9")
 
         return 12 + digit_width * digits
 
@@ -360,6 +366,9 @@ class CodeEditor(QPlainTextEdit):
     def line_number_area_paint_event(self, event):
         """Draw line numbers for all visible text blocks."""
         painter = QPainter(self.line_number_area)
+        painter.setFont(self.line_number_area.font())
+
+        font_metrics = painter.fontMetrics()
 
         painter.fillRect(
             event.rect(),
@@ -385,7 +394,7 @@ class CodeEditor(QPlainTextEdit):
                         0,
                         top,
                         self.line_number_area.width(),
-                        self.fontMetrics().height(),
+                        font_metrics.height(),
                         self._current_line_background,
                     )
                     painter.setPen(self._gutter_foreground)
@@ -396,7 +405,7 @@ class CodeEditor(QPlainTextEdit):
                     0,
                     top,
                     self.line_number_area.width() - 6,
-                    self.fontMetrics().height(),
+                    font_metrics.height(),
                     Qt.AlignmentFlag.AlignRight,
                     line_number,
                 )
@@ -446,5 +455,9 @@ class CodeEditor(QPlainTextEdit):
 
         self.setFont(font)
 
+        # Synchronize the gutter font with the editor.
+        self.line_number_area.update_font()
+
+        # Recalculate the gutter dimensions.
         self.update_line_number_area_width()
         self.line_number_area.update()
