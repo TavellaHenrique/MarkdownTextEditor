@@ -170,6 +170,26 @@ class MainWindow(QMainWindow):
             ("Reset Font Size", "Ctrl+0", self.editor.reset_font_size),
         ]
 
+        format_actions = [
+            ("Bold", "Ctrl+B", self.editor.format_bold),
+            ("Italic", "Ctrl+I", self.editor.format_italic),
+            (
+                "Strikethrough",
+                "Ctrl+Shift+X",
+                self.editor.format_strikethrough,
+            ),
+            ("Insert Link", "Ctrl+K", self.editor.insert_link),
+        ]
+
+        heading_actions = [
+            (
+                f"Heading {level}",
+                f"Ctrl+{level}",
+                lambda checked=False, level=level: self.editor.set_heading_level(level),
+            )
+            for level in range(1, 7)
+        ]
+
         self.menu_controller = MenuController(
             menu_bar=self.menuBar(),
             parent=self,
@@ -181,6 +201,8 @@ class MainWindow(QMainWindow):
             on_theme_changed=self._change_theme,
             on_preview_toggled=self.preview.setVisible,
             on_outline_toggled=self.outline.setVisible,
+            format_actions=format_actions,
+            heading_actions=heading_actions,
         )
 
     def _create_status_bar(self):

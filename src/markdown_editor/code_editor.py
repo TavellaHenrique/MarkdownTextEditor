@@ -1,3 +1,4 @@
+import re
 import unicodedata
 
 from PySide6.QtCore import QRect, QSize, Qt
@@ -428,6 +429,219 @@ class CodeEditor(QPlainTextEdit):
         self._gutter_foreground = QColor(foreground)
 
         self.line_number_area.update()
+
+    @staticmethod
+    def _utf16_length(text: str) -> int:
+        """Return the number of UTF-16 code units in a string."""
+        return len(text.encode("utf-16-le")) // 2
+
+    def _get_text_range(self, start: int, end: int) -> str:
+        """Return the document text between two UTF-16 positions."""
+        cursor = QTextCursor(self.document())
+        cursor.setPosition(start)
+        cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+
+        return cursor.selectedText().replace("\u2029", "\n")
+
+    def _wrap_selection(self, prefix: str, suffix: str) -> None:
+        """Toggle Markdown delimiters around the selected text."""
+        cursor = self.textCursor()
+
+        if not cursor.hasSelection():
+            start = cursor.position()
+            cursor.insertText(f"{prefix}{suffix}")
+            cursor.setPosition(start + self._utf16_length(prefix))
+            self.setTextCursor(cursor)
+            return
+
+        start = cursor.selectionStart()
+        end = cursor.selectionEnd()
+        selected_text = self._get_text_range(start, end)
+
+        # Remove delimiters included in the selection.
+        if selected_text.startswith(prefix) and selected_text.endswith(suffix):
+            content = selected_text[len(prefix) : len(selected_text) - len(suffix)]
+
+            cursor.insertText(content)
+            self._select_text(
+                start,
+                start + self._utf16_length(content),
+            )
+            return
+
+        # Check whether the selected text is already surrounded by delimiters.
+        prefix_length = self._utf16_length(prefix)
+        suffix_length = self._utf16_length(suffix)
+
+        if self._has_exact_wrapping(
+            start,
+            end,
+            prefix,
+            suffix,
+        ):
+            # Remove the surrounding delimiters.
+            cursor.setPosition(start - prefix_length)
+            cursor.setPosition(
+                end + suffix_length,
+                QTextCursor.MoveMode.KeepAnchor,
+            )
+            cursor.insertText(selected_text)
+
+            self._select_text(
+                start - prefix_length,
+                start - prefix_length + self._utf16_length(selected_text),
+            )
+            return
+
+        # Apply the requested formatting.
+        cursor.insertText(f"{prefix}{selected_text}{suffix}")
+
+        self._select_text(
+            start + prefix_length,
+            start + prefix_length + self._utf16_length(selected_text),
+        )
+
+    def _has_exact_wrapping(
+        self,
+        start: int,
+        end: int,
+        prefix: str,
+        suffix: str,
+    ) -> bool:
+        """Check whether the selection has exactly the requested delimiters."""
+        prefix_length = self._utf16_length(prefix)
+        suffix_length = self._utf16_length(suffix)
+
+        if start < prefix_length:
+            return False
+
+        if self._get_text_range(start - prefix_length, start) != prefix:
+            return False
+
+        if self._get_text_range(end, end + suffix_length) != suffix:
+            return False
+
+        # Avoid confusing bold delimiters with italic delimiters.
+        marker = prefix[-1]
+
+        if start > prefix_length:
+            if (
+                self._get_text_range(
+                    start - prefix_length - 1,
+                    start - prefix_length,
+                )
+                == marker
+            ):
+                return False
+
+        if (
+            self._get_text_range(
+                end + suffix_length,
+                end + suffix_length + 1,
+            )
+            == marker
+        ):
+            return False
+
+        return True
+
+    def _select_text(self, start: int, end: int) -> None:
+        """Select a document range using UTF-16 positions."""
+        cursor = QTextCursor(self.document())
+        cursor.setPosition(start)
+        cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+        self.setTextCursor(cursor)
+
+    def format_bold(self) -> None:
+        """Apply Markdown bold formatting."""
+        self._wrap_selection("**", "**")
+
+    def format_italic(self) -> None:
+        """Apply Markdown italic formatting."""
+        self._wrap_selection("*", "*")
+
+    def format_strikethrough(self) -> None:
+        """Apply Markdown strikethrough formatting."""
+        self._wrap_selection("~~", "~~")
+
+    def insert_link(self) -> None:
+        """Insert a Markdown link using the current selection."""
+        cursor = self.textCursor()
+        start = cursor.selectionStart()
+        selected_text = cursor.selectedText().replace("\u2029", "\n")
+
+        if cursor.hasSelection():
+            cursor.insertText(f"[{selected_text}](url)")
+
+            # Select the URL placeholder for immediate editing.
+            url_start = start + self._utf16_length(f"[{selected_text}](")
+            url_end = url_start + self._utf16_length("url")
+
+            cursor = QTextCursor(self.document())
+            cursor.setPosition(url_start)
+            cursor.setPosition(
+                url_end,
+                QTextCursor.MoveMode.KeepAnchor,
+            )
+        else:
+            cursor.insertText("[text](url)")
+
+            # Select the link text placeholder.
+            cursor = QTextCursor(self.document())
+            cursor.setPosition(start + 1)
+            cursor.setPosition(
+                start + 1 + self._utf16_length("text"),
+                QTextCursor.MoveMode.KeepAnchor,
+            )
+
+        self.setTextCursor(cursor)
+
+    def set_heading_level(self, level: int) -> None:
+        """Apply a Markdown heading level to the current line."""
+        if not isinstance(level, int) or isinstance(level, bool):
+            raise ValueError("Heading level must be an integer.")
+
+        if not 1 <= level <= 6:
+            raise ValueError("Heading level must be between 1 and 6.")
+
+        cursor = self.textCursor()
+        block = cursor.block()
+        block_text = block.text()
+        original_position = cursor.positionInBlock()
+
+        # Identify and remove an existing heading marker.
+        match = re.match(r"^#{1,6}\s+", block_text)
+        old_prefix_length = self._utf16_length(match.group()) if match else 0
+
+        content = block_text[match.end() :] if match else block_text
+        new_prefix = f"{'#' * level} "
+        heading = f"{new_prefix}{content}"
+
+        # Replace the entire current block.
+        block_cursor = QTextCursor(block)
+        block_cursor.movePosition(
+            QTextCursor.MoveOperation.EndOfBlock,
+            QTextCursor.MoveMode.KeepAnchor,
+        )
+        block_cursor.insertText(heading)
+
+        # Preserve the cursor position relative to the heading content.
+        content_position = max(
+            0,
+            original_position - old_prefix_length,
+        )
+        content_position = min(
+            content_position,
+            self._utf16_length(content),
+        )
+
+        new_position = (
+            block.position() + self._utf16_length(new_prefix) + content_position
+        )
+
+        new_cursor = QTextCursor(self.document())
+        new_cursor.setPosition(new_position)
+        self.setTextCursor(new_cursor)
 
     def increase_font_size(self):
         """Increase the editor font size."""

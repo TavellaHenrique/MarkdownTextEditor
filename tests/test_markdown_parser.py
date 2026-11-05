@@ -1,6 +1,9 @@
 import pytest
 
-from markdown_editor.markdown_parser import MarkdownParser
+from markdown_editor.markdown_parser import (
+    DocumentHeading,
+    MarkdownParser,
+)
 
 
 @pytest.fixture
@@ -83,11 +86,6 @@ def test_convert_empty_text_to_html(parser):
     result = parser.to_html("")
 
     assert result == ""
-
-
-from markdown_editor.markdown_parser import (
-    DocumentHeading,
-)
 
 
 def test_extract_headings_from_document():

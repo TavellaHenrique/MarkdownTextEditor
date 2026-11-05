@@ -1,3 +1,4 @@
+import pytest
 from PySide6.QtGui import QTextCursor
 
 from markdown_editor.code_editor import CodeEditor
@@ -149,3 +150,168 @@ def test_search_text_returns_zero_when_no_match(qtbot):
 
     assert result == 0
     assert editor._current_match_index == -1
+
+
+def test_format_bold_wraps_selected_text(qtbot):
+    """Verify that bold formatting wraps selected text."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("Hello")
+
+    cursor = editor.textCursor()
+    cursor.select(QTextCursor.SelectionType.Document)
+    editor.setTextCursor(cursor)
+
+    editor.format_bold()
+
+    assert editor.toPlainText() == "**Hello**"
+    assert editor.textCursor().selectedText() == "Hello"
+
+
+def test_format_italic_inserts_empty_markers(qtbot):
+    """Verify that italic formatting inserts markers at the cursor."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("Hello")
+
+    cursor = editor.textCursor()
+    cursor.movePosition(QTextCursor.MoveOperation.Start)
+    editor.setTextCursor(cursor)
+
+    editor.format_italic()
+
+    assert editor.toPlainText() == "* *Hello".replace(" ", "")
+    assert editor.textCursor().position() == 1
+
+
+def test_insert_link_with_selected_text(qtbot):
+    """Verify that link insertion preserves selected text."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("OpenAI")
+
+    cursor = editor.textCursor()
+    cursor.select(QTextCursor.SelectionType.Document)
+    editor.setTextCursor(cursor)
+
+    editor.insert_link()
+
+    assert editor.toPlainText() == "[OpenAI](url)"
+    assert editor.textCursor().selectedText() == "url"
+
+
+def test_insert_link_without_selection(qtbot):
+    """Verify that link insertion creates editable placeholders."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    editor.insert_link()
+
+    assert editor.toPlainText() == "[text](url)"
+    assert editor.textCursor().selectedText() == "text"
+
+
+@pytest.mark.parametrize(
+    ("level", "expected"),
+    [
+        (1, "# Heading"),
+        (2, "## Heading"),
+        (3, "### Heading"),
+        (4, "#### Heading"),
+        (5, "##### Heading"),
+        (6, "###### Heading"),
+    ],
+)
+def test_set_heading_level(qtbot, level, expected):
+    """Verify that heading levels are applied correctly."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("Heading")
+
+    editor.set_heading_level(level)
+
+    assert editor.toPlainText() == expected
+
+
+def test_set_heading_level_replaces_existing_level(qtbot):
+    """Verify that applying a heading replaces the existing level."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("## Existing heading")
+
+    editor.set_heading_level(4)
+
+    assert editor.toPlainText() == "#### Existing heading"
+
+
+def test_set_heading_level_rejects_invalid_level(qtbot):
+    """Verify that invalid heading levels raise an exception."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    with pytest.raises(ValueError):
+        editor.set_heading_level(7)
+
+
+def test_format_bold_removes_existing_formatting(qtbot):
+    """Verify that bold formatting can be removed."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("**Hello**")
+
+    cursor = editor.textCursor()
+    cursor.setPosition(2)
+    cursor.setPosition(7, QTextCursor.MoveMode.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    editor.format_bold()
+
+    assert editor.toPlainText() == "Hello"
+    assert editor.textCursor().selectedText() == "Hello"
+
+
+def test_format_bold_removes_delimiters_inside_selection(qtbot):
+    """Verify that bold delimiters inside the selection are removed."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("**Hello**")
+
+    cursor = editor.textCursor()
+    cursor.select(QTextCursor.SelectionType.Document)
+    editor.setTextCursor(cursor)
+
+    editor.format_bold()
+
+    assert editor.toPlainText() == "Hello"
+
+
+def test_format_italic_does_not_remove_bold_formatting(qtbot):
+    """Verify that italic formatting does not remove bold delimiters."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("**Hello**")
+
+    cursor = editor.textCursor()
+    cursor.setPosition(2)
+    cursor.setPosition(7, QTextCursor.MoveMode.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    editor.format_italic()
+
+    assert editor.toPlainText() == "***Hello***"
+
+
+def test_format_strikethrough_removes_existing_formatting(qtbot):
+    """Verify that strikethrough formatting can be removed."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("~~Hello~~")
+
+    cursor = editor.textCursor()
+    cursor.setPosition(2)
+    cursor.setPosition(7, QTextCursor.MoveMode.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    editor.format_strikethrough()
+
+    assert editor.toPlainText() == "Hello"

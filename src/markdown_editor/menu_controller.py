@@ -21,6 +21,8 @@ class MenuController:
         on_theme_changed: Callable[[str], None],
         on_preview_toggled: Callable[[bool], None],
         on_outline_toggled: Callable[[bool], None] | None = None,
+        format_actions: list[ActionConfig] | None = None,
+        heading_actions: list[ActionConfig] | None = None,
     ):
         """Initialize the menu controller."""
         self._menu_bar = menu_bar
@@ -29,6 +31,10 @@ class MenuController:
 
         self._create_file_menu(file_actions)
         self._create_edit_menu(edit_actions)
+        self._create_format_menu(
+            format_actions or [],
+            heading_actions or [],
+        )
         self._create_view_menu(
             view_actions,
             theme_names,
@@ -59,6 +65,21 @@ class MenuController:
         edit_menu.addSeparator()
 
         self._add_actions(edit_menu, actions[6:])
+
+    def _create_format_menu(
+        self,
+        actions: list[ActionConfig],
+        heading_actions: list[ActionConfig],
+    ) -> None:
+        """Create the Format menu and its heading submenu."""
+        format_menu = self._menu_bar.addMenu("Format")
+
+        self._add_actions(format_menu, actions)
+
+        if heading_actions:
+            format_menu.addSeparator()
+            heading_menu = format_menu.addMenu("Heading")
+            self._add_actions(heading_menu, heading_actions)
 
     def _create_view_menu(
         self,
