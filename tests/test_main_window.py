@@ -222,12 +222,16 @@ def test_show_find_bar(main_window, qtbot):
 
 def test_find_bar_close_restores_editor_focus(main_window, qtbot):
     """Verify that closing the search bar restores editor focus."""
-
     main_window.show()
+    main_window.activateWindow()
+
     qtbot.waitExposed(main_window)
+    qtbot.waitActive(main_window)
 
     main_window._show_find_bar()
     main_window.find_bar.close_bar()
 
     assert not main_window.find_bar.isVisible()
-    assert main_window.editor.hasFocus()
+
+    # Wait until the editor receives focus.
+    qtbot.waitUntil(main_window.editor.hasFocus)

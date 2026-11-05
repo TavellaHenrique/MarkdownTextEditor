@@ -224,6 +224,5 @@ class FindBar(QFrame):
 
     def close_bar(self):
         """Hide the search bar and notify connected components."""
-
         self.hide()
         self.close_requested.emit()

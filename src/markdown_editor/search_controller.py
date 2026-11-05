@@ -1,3 +1,4 @@
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QStatusBar
 
 from markdown_editor.code_editor import CodeEditor
@@ -91,5 +92,6 @@ class SearchController:
     def clear_search(self):
         """Clear search results and restore editor focus."""
         self._editor.search_text("")
-        self._find_bar.setFocus()
-        self._editor.setFocus()
+
+        # Restore focus after the search bar finishes hiding.
+        QTimer.singleShot(0, self._editor.setFocus)
