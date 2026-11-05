@@ -3,14 +3,18 @@ from pathlib import Path
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtWidgets import (
     QFileDialog,
+    QLabel,
     QMainWindow,
     QMessageBox,
     QSplitter,
     QTextBrowser,
+    QVBoxLayout,
+    QWidget,
 )
 
 from markdown_editor.code_editor import CodeEditor
 from markdown_editor.document_controller import DocumentController
+from markdown_editor.document_statistics import calculate_document_statistics
 from markdown_editor.find_bar import FindBar
 from markdown_editor.menu_controller import MenuController
 from markdown_editor.preview_controller import PreviewController
@@ -141,27 +145,68 @@ class MainWindow(QMainWindow):
         )
 
     def _create_status_bar(self):
-        """Create the application status bar"""
+        """Create and configure the application status bar."""
+        status_bar = self.statusBar()
 
+        # Create a container for vertically arranged information.
+        status_widget = QWidget()
+        status_layout = QVBoxLayout(status_widget)
+        status_layout.setContentsMargins(8, 2, 8, 2)
+        status_layout.setSpacing(2)
+
+        self.statistics_label = QLabel()
+        self.cursor_position_label = QLabel()
+
+        status_layout.addWidget(self.cursor_position_label)
+        status_layout.addWidget(self.statistics_label)
+
+        status_bar.addPermanentWidget(status_widget)
+
+        # Connect editor signals to status updates.
+        self.editor.textChanged.connect(self._update_document_statistics)
         self.editor.cursorPositionChanged.connect(self._update_cursor_position)
 
+        # Restore the default message when temporary messages disappear.
+        status_bar.messageChanged.connect(self._restore_ready_message)
+
         self._update_cursor_position()
+        self._update_document_statistics()
+        status_bar.showMessage("Ready")
+
+    def _update_document_statistics(self):
+        """Display statistics for the current document."""
+        statistics = calculate_document_statistics(self.editor.toPlainText())
+
+        self.statistics_label.setText(
+            f"Words: {statistics.word_count} | "
+            f"Characters: {statistics.character_count} | "
+            f"No whitespace: {statistics.character_count_without_whitespace} | "
+            f"Lines: {statistics.line_count} | "
+            f"Paragraphs: {statistics.paragraph_count} | "
+            f"Reading: {statistics.reading_time_minutes} min"
+        )
 
     def _update_cursor_position(self):
-        """Display the current cursor position"""
-
+        """Display the current cursor position."""
         cursor = self.editor.textCursor()
 
         line = cursor.blockNumber() + 1
         column = cursor.positionInBlock() + 1
 
-        self.statusBar().showMessage(f"Line: {line} | Column: {column}")
+        self.cursor_position_label.setText(f"Line: {line} | Column: {column}")
 
     def _apply_theme(self):
         """Apply the currently selected application theme."""
         theme = self.theme_controller.current_theme
 
         self.setStyleSheet(load_application_stylesheet(theme))
+
+        # Apply theme colors to status information.
+        status_text_color = theme.muted_foreground
+
+        self.statistics_label.setStyleSheet(f"color: {status_text_color};")
+
+        self.cursor_position_label.setStyleSheet(f"color: {status_text_color};")
 
         self.editor.set_line_number_colors(
             theme.gutter_background,
@@ -249,6 +294,11 @@ class MainWindow(QMainWindow):
             self._position_find_bar()
 
         return super().eventFilter(watched, event)
+
+    def _restore_ready_message(self, message: str):
+        """Restore the default status message after temporary messages."""
+        if not message:
+            self.statusBar().showMessage("Ready")
 
     def _open_file(self):
         """Open a Markdown file."""
