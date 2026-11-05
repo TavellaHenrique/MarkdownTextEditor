@@ -20,6 +20,7 @@ class MenuController:
         current_theme: str,
         on_theme_changed: Callable[[str], None],
         on_preview_toggled: Callable[[bool], None],
+        on_outline_toggled: Callable[[bool], None] | None = None,
     ):
         """Initialize the menu controller."""
         self._menu_bar = menu_bar
@@ -34,6 +35,7 @@ class MenuController:
             current_theme,
             on_theme_changed,
             on_preview_toggled,
+            on_outline_toggled,
         )
 
     @property
@@ -65,6 +67,7 @@ class MenuController:
         current_theme: str,
         on_theme_changed: Callable[[str], None],
         on_preview_toggled: Callable[[bool], None],
+        on_outline_toggled: Callable[[bool], None] | None,
     ) -> None:
         """Create the View menu and its submenus."""
         view_menu = self._menu_bar.addMenu("View")
@@ -76,6 +79,16 @@ class MenuController:
         preview_action.toggled.connect(on_preview_toggled)
 
         view_menu.addAction(preview_action)
+
+        outline_action = QAction("Show Document Outline", self._parent)
+        outline_action.setShortcut("Ctrl+Shift+O")
+        outline_action.setCheckable(True)
+        outline_action.setChecked(True)
+
+        if on_outline_toggled is not None:
+            outline_action.toggled.connect(on_outline_toggled)
+
+        view_menu.addAction(outline_action)
 
         self._create_theme_menu(
             view_menu,

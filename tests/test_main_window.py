@@ -235,3 +235,40 @@ def test_find_bar_close_restores_editor_focus(main_window, qtbot):
 
     # Wait until the editor receives focus.
     qtbot.waitUntil(main_window.editor.hasFocus)
+
+
+def test_document_outline_is_visible_by_default(main_window):
+    """Verify that the document outline is not explicitly hidden."""
+    assert not main_window.outline.isHidden()
+
+
+def test_document_outline_updates_when_text_changes(main_window):
+    """Verify that the outline reflects document headings."""
+    main_window.editor.setPlainText("# Main heading\nSome text\n## Secondary heading")
+
+    assert main_window.outline.topLevelItemCount() == 1
+
+    main_item = main_window.outline.topLevelItem(0)
+
+    assert main_item.text(0) == "Main heading"
+    assert main_item.childCount() == 1
+    assert main_item.child(0).text(0) == "Secondary heading"
+
+
+def test_document_outline_navigates_to_heading(main_window):
+    """Verify that selecting a heading moves the editor cursor."""
+    main_window.editor.setPlainText("# First heading\nSome text\n## Second heading")
+
+    main_window._navigate_to_heading(3)
+
+    cursor = main_window.editor.textCursor()
+
+    assert cursor.blockNumber() == 2
+    assert cursor.positionInBlock() == 0
+
+
+def test_document_outline_can_be_hidden(main_window):
+    """Verify that the document outline can be hidden."""
+    main_window.outline.setVisible(False)
+
+    assert not main_window.outline.isVisible()

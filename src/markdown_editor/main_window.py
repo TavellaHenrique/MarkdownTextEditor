@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, Qt
+from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
     QFileDialog,
     QLabel,
@@ -14,8 +15,10 @@ from PySide6.QtWidgets import (
 
 from markdown_editor.code_editor import CodeEditor
 from markdown_editor.document_controller import DocumentController
+from markdown_editor.document_outline import DocumentOutline
 from markdown_editor.document_statistics import calculate_document_statistics
 from markdown_editor.find_bar import FindBar
+from markdown_editor.markdown_parser import MarkdownParser
 from markdown_editor.menu_controller import MenuController
 from markdown_editor.preview_controller import PreviewController
 from markdown_editor.search_controller import SearchController
@@ -38,6 +41,7 @@ class MainWindow(QMainWindow):
 
         # Initialize document management.
         self.document_controller = DocumentController()
+        self.markdown_parser = MarkdownParser()
 
         self.resize(self.INITIAL_WIDTH, self.INITIAL_HEIGHT)
 
@@ -47,10 +51,12 @@ class MainWindow(QMainWindow):
         self._create_window_controller()
         self._create_find_bar()
         self._create_preview()
+        self._create_outline()
         self._create_splitter()
         self._create_menu_controller()
         self._create_status_bar()
         self._create_search_controller()
+
         self.window_controller.update_window_title()
         self._apply_theme()
 
@@ -97,16 +103,48 @@ class MainWindow(QMainWindow):
             self.theme_controller,
         )
 
+    def _create_outline(self):
+        """Create the document navigation panel."""
+        self.outline = DocumentOutline()
+
+        self.outline.heading_selected.connect(self._navigate_to_heading)
+
+        self.editor.textChanged.connect(self._update_document_outline)
+
+        self._update_document_outline()
+
+    def _update_document_outline(self):
+        """Refresh the document outline using the current Markdown text."""
+        markdown_text = self.editor.toPlainText()
+        headings = self.markdown_parser.extract_headings(markdown_text)
+
+        self.outline.set_headings(headings)
+
+    def _navigate_to_heading(self, line_number: int):
+        """Move the editor cursor to the selected heading."""
+        block = self.editor.document().findBlockByNumber(line_number - 1)
+
+        if not block.isValid():
+            return
+
+        cursor = QTextCursor(block)
+        self.editor.setTextCursor(cursor)
+        self.editor.centerCursor()
+        self.editor.setFocus()
+
     def _create_splitter(self):
-        """Arrange the editor and preview horizontally"""
+        """Arrange the outline, editor, and preview panels."""
+        self.editor_preview_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.editor_preview_splitter.addWidget(self.editor)
+        self.editor_preview_splitter.addWidget(self.preview)
+        self.editor_preview_splitter.setSizes([500, 500])
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.main_splitter.addWidget(self.outline)
+        self.main_splitter.addWidget(self.editor_preview_splitter)
+        self.main_splitter.setSizes([200, 800])
 
-        splitter.addWidget(self.editor)
-        splitter.addWidget(self.preview)
-        splitter.setSizes([self.width() / 2, self.width() / 2])
-
-        self.setCentralWidget(splitter)
+        self.setCentralWidget(self.main_splitter)
 
     def _create_menu_controller(self):
         """Initialize the menu controller."""
@@ -142,6 +180,7 @@ class MainWindow(QMainWindow):
             current_theme=self.theme_controller.current_theme_name,
             on_theme_changed=self._change_theme,
             on_preview_toggled=self.preview.setVisible,
+            on_outline_toggled=self.outline.setVisible,
         )
 
     def _create_status_bar(self):
@@ -224,6 +263,26 @@ class MainWindow(QMainWindow):
         self.find_bar.set_theme_colors(
             foreground=theme.foreground,
             background=theme.menu_background,
+        )
+
+        # Apply theme colors to the document outline.
+        self.outline.setStyleSheet(
+            f"""
+            QTreeWidget {{
+                background-color: {theme.menu_background};
+                color: {theme.foreground};
+                border: 1px solid {theme.border};
+            }}
+
+            QTreeWidget::item:selected {{
+                background-color: {theme.menu_selected};
+                color: {theme.foreground};
+            }}
+
+            QTreeWidget::item:hover {{
+                background-color: {theme.menu_selected};
+            }}
+            """
         )
 
         self._update_preview()
