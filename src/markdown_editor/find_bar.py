@@ -170,6 +170,45 @@ class FindBar(QFrame):
         self.escape_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.escape_shortcut.activated.connect(self.close_bar)
 
+    def set_theme_colors(self, foreground: str, background: str):
+        """Apply theme colors to the search bar and its components."""
+        self.setStyleSheet(
+            f"""
+            #findBar {{
+                background-color: {background};
+                border: 1px solid {foreground};
+                border-radius: 6px;
+            }}
+
+            #findBar QLabel,
+            #findBar QToolButton {{
+                color: {foreground};
+                background-color: transparent;
+            }}
+
+            #findBar QLineEdit, QToolButton {{
+                color: {foreground};
+                background-color: transparent;
+                border: 1px solid {foreground};
+                border-radius: 4px;
+                padding: 4px;
+            }}
+
+            #findBar QLineEdit::placeholder {{
+                color: {foreground};
+            }}
+
+            #findBar QToolButton {{
+                padding: 2px;
+            }}
+
+            #findBar QToolButton:hover {{
+                background-color: rgba(128, 128, 128, 40);
+                border-radius: 4px;
+            }}
+            """
+        )
+
     def show_bar(self, selected_text: str = ""):
         """Show the search bar without automatically executing a search."""
 

@@ -220,6 +220,12 @@ class MainWindow(QMainWindow):
             theme.current_match,
         )
 
+        # Apply theme colors to find bar information.
+        self.find_bar.set_theme_colors(
+            foreground=theme.foreground,
+            background=theme.menu_background,
+        )
+
         self._update_preview()
 
     def _change_theme(self, theme_name: str):
