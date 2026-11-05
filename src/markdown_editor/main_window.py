@@ -173,11 +173,6 @@ class MainWindow(QMainWindow):
         format_actions = [
             ("Bold", "Ctrl+B", self.editor.format_bold),
             ("Italic", "Ctrl+I", self.editor.format_italic),
-            (
-                "Strikethrough",
-                "Ctrl+Shift+X",
-                self.editor.format_strikethrough,
-            ),
             ("Insert Link", "Ctrl+K", self.editor.insert_link),
         ]
 

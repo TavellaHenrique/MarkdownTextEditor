@@ -301,17 +301,65 @@ def test_format_italic_does_not_remove_bold_formatting(qtbot):
     assert editor.toPlainText() == "***Hello***"
 
 
-def test_format_strikethrough_removes_existing_formatting(qtbot):
-    """Verify that strikethrough formatting can be removed."""
+@pytest.mark.parametrize(
+    ("text", "format_method", "expected"),
+    [
+        ("*example*", "format_bold", "***example***"),
+        ("**example**", "format_italic", "***example***"),
+        ("***example***", "format_bold", "*example*"),
+        ("***example***", "format_italic", "**example**"),
+    ],
+)
+def test_toggle_combined_formatting(
+    qtbot,
+    text,
+    format_method,
+    expected,
+):
+    """Verify that bold and italic formatting can be combined and toggled."""
     editor = CodeEditor()
     qtbot.addWidget(editor)
-    editor.setPlainText("~~Hello~~")
+    editor.setPlainText(text)
 
     cursor = editor.textCursor()
-    cursor.setPosition(2)
-    cursor.setPosition(7, QTextCursor.MoveMode.KeepAnchor)
+    cursor.setPosition(len(text) // 2 - len("example") // 2)
+    cursor.setPosition(
+        cursor.position() + len("example"),
+        QTextCursor.MoveMode.KeepAnchor,
+    )
     editor.setTextCursor(cursor)
 
-    editor.format_strikethrough()
+    getattr(editor, format_method)()
 
-    assert editor.toPlainText() == "Hello"
+    assert editor.toPlainText() == expected
+
+
+def test_format_bold_on_entire_document(qtbot):
+    """Verify bold formatting works when the entire document is selected."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("First line\nSecond line")
+
+    cursor = editor.textCursor()
+    cursor.select(QTextCursor.SelectionType.Document)
+    editor.setTextCursor(cursor)
+
+    editor.format_bold()
+
+    assert editor.toPlainText() == "**First line\nSecond line**"
+    assert editor.textCursor().selectedText() == "First line\u2029Second line"
+
+
+def test_format_italic_on_entire_document(qtbot):
+    """Verify italic formatting works when the entire document is selected."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("First line\nSecond line")
+
+    cursor = editor.textCursor()
+    cursor.select(QTextCursor.SelectionType.Document)
+    editor.setTextCursor(cursor)
+
+    editor.format_italic()
+
+    assert editor.toPlainText() == "*First line\nSecond line*"

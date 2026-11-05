@@ -443,8 +443,36 @@ class CodeEditor(QPlainTextEdit):
 
         return cursor.selectedText().replace("\u2029", "\n")
 
+    def _count_adjacent_markers(
+        self,
+        position: int,
+        marker: str,
+        direction: int,
+    ) -> int:
+        """Count consecutive Markdown markers adjacent to a position."""
+        count = 0
+        marker_length = self._utf16_length(marker)
+
+        while True:
+            if direction < 0:
+                start = position - (count + 1) * marker_length
+                end = position - count * marker_length
+            else:
+                start = position + count * marker_length
+                end = start + marker_length
+
+            if start < 0:
+                break
+
+            if self._get_text_range(start, end) != marker:
+                break
+
+            count += 1
+
+        return count
+
     def _wrap_selection(self, prefix: str, suffix: str) -> None:
-        """Toggle Markdown delimiters around the selected text."""
+        """Toggle Markdown formatting while preserving other emphasis."""
         cursor = self.textCursor()
 
         if not cursor.hasSelection():
@@ -458,7 +486,12 @@ class CodeEditor(QPlainTextEdit):
         end = cursor.selectionEnd()
         selected_text = self._get_text_range(start, end)
 
-        # Remove delimiters included in the selection.
+        marker = prefix
+        marker_count = len(marker)
+        prefix_length = self._utf16_length(prefix)
+        suffix_length = self._utf16_length(suffix)
+
+        # Remove delimiters included in the selection itself.
         if selected_text.startswith(prefix) and selected_text.endswith(suffix):
             content = selected_text[len(prefix) : len(selected_text) - len(suffix)]
 
@@ -469,17 +502,29 @@ class CodeEditor(QPlainTextEdit):
             )
             return
 
-        # Check whether the selected text is already surrounded by delimiters.
-        prefix_length = self._utf16_length(prefix)
-        suffix_length = self._utf16_length(suffix)
+        if marker == "*":
+            # Count individual asterisks to distinguish combined formatting.
+            left_count = self._count_adjacent_markers(start, "*", -1)
+            right_count = self._count_adjacent_markers(end, "*", 1)
 
-        if self._has_exact_wrapping(
-            start,
-            end,
-            prefix,
-            suffix,
-        ):
-            # Remove the surrounding delimiters.
+            is_formatted = left_count == right_count and left_count in {marker_count, 3}
+        else:
+            # Count complete strikethrough marker pairs.
+            left_count = self._count_adjacent_markers(
+                start,
+                marker,
+                -1,
+            )
+            right_count = self._count_adjacent_markers(
+                end,
+                marker,
+                1,
+            )
+
+            is_formatted = left_count == right_count == 1
+
+        if is_formatted:
+            # Remove only the requested formatting markers.
             cursor.setPosition(start - prefix_length)
             cursor.setPosition(
                 end + suffix_length,
@@ -493,7 +538,7 @@ class CodeEditor(QPlainTextEdit):
             )
             return
 
-        # Apply the requested formatting.
+        # Apply formatting while preserving existing delimiters.
         cursor.insertText(f"{prefix}{selected_text}{suffix}")
 
         self._select_text(
@@ -546,10 +591,16 @@ class CodeEditor(QPlainTextEdit):
         return True
 
     def _select_text(self, start: int, end: int) -> None:
-        """Select a document range using UTF-16 positions."""
+        """Select a document range using valid UTF-16 positions."""
+        document_length = self._utf16_length(self.toPlainText())
+
+        start = max(0, min(start, document_length))
+        end = max(start, min(end, document_length))
+
         cursor = QTextCursor(self.document())
         cursor.setPosition(start)
         cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+
         self.setTextCursor(cursor)
 
     def format_bold(self) -> None:
@@ -559,10 +610,6 @@ class CodeEditor(QPlainTextEdit):
     def format_italic(self) -> None:
         """Apply Markdown italic formatting."""
         self._wrap_selection("*", "*")
-
-    def format_strikethrough(self) -> None:
-        """Apply Markdown strikethrough formatting."""
-        self._wrap_selection("~~", "~~")
 
     def insert_link(self) -> None:
         """Insert a Markdown link using the current selection."""
