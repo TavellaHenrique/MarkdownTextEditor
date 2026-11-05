@@ -83,3 +83,56 @@ def test_convert_empty_text_to_html(parser):
     result = parser.to_html("")
 
     assert result == ""
+
+
+from markdown_editor.markdown_parser import (
+    DocumentHeading,
+)
+
+
+def test_extract_headings_from_document():
+    """Test extracting headings with different levels."""
+    parser = MarkdownParser()
+
+    markdown_text = (
+        "# Introduction\n\nSome text.\n\n## Installation\n\n### Requirements\n"
+    )
+
+    result = parser.extract_headings(markdown_text)
+
+    assert result == [
+        DocumentHeading(1, "Introduction", 1),
+        DocumentHeading(2, "Installation", 5),
+        DocumentHeading(3, "Requirements", 7),
+    ]
+
+
+def test_extract_headings_from_empty_document():
+    """Test extracting headings from an empty document."""
+    parser = MarkdownParser()
+
+    assert parser.extract_headings("") == []
+
+
+def test_extract_headings_ignores_code_blocks():
+    """Test that headings inside code blocks are ignored."""
+    parser = MarkdownParser()
+
+    markdown_text = "# Real heading\n\n```markdown\n# Not a heading\n```\n"
+
+    result = parser.extract_headings(markdown_text)
+
+    assert result == [
+        DocumentHeading(1, "Real heading", 1),
+    ]
+
+
+def test_extract_headings_preserves_inline_formatting():
+    """Test extracting heading text containing inline formatting."""
+    parser = MarkdownParser()
+
+    result = parser.extract_headings("## **Important** topic")
+
+    assert result == [
+        DocumentHeading(2, "Important topic", 1),
+    ]
