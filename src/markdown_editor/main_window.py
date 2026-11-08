@@ -371,6 +371,7 @@ class MainWindow(QMainWindow):
         self.editor.set_current_line_color(
             theme.current_line_background,
         )
+        self.editor.set_placeholder_color(theme.muted_foreground)
         self.editor.set_search_colors(
             theme.search_highlight,
             theme.current_match,

@@ -12,6 +12,17 @@ def test_editor_initialization(qtbot):
     assert editor.toPlainText() == ""
 
 
+def test_empty_editor_does_not_activate_line_highlight(qtbot):
+    """The placeholder should remain visible when the document is empty."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    editor.setPlaceholderText("Out of words?")
+    editor.highlight_current_line()
+
+    assert editor.extraSelections() == []
+
+
 def test_editor_displays_text(qtbot):
     """Verify that the editor displays inserted text."""
     editor = CodeEditor()

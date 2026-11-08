@@ -5,6 +5,7 @@ from PySide6.QtCore import QRect, QSize, Qt
 from PySide6.QtGui import (
     QColor,
     QPainter,
+    QPalette,
     QTextCursor,
     QTextFormat,
 )
@@ -262,6 +263,12 @@ class CodeEditor(QPlainTextEdit):
         self._current_line_background = QColor(color)
         self.highlight_current_line()
 
+    def set_placeholder_color(self, color):
+        """Apply the placeholder text color for the empty editor state."""
+        palette = self.palette()
+        palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(color))
+        self.setPalette(palette)
+
     def highlight_current_line(self):
         """Refresh the current line and search highlights"""
 
@@ -269,6 +276,10 @@ class CodeEditor(QPlainTextEdit):
 
     def _update_extra_selections(self):
         """Combine current line and search occurrence highlights"""
+
+        if self.document().isEmpty():
+            self.setExtraSelections([])
+            return
 
         selections = []
 
