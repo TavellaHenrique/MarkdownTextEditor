@@ -23,6 +23,7 @@ class MenuController:
         on_outline_toggled: Callable[[bool], None] | None = None,
         format_actions: list[ActionConfig] | None = None,
         heading_actions: list[ActionConfig] | None = None,
+        list_actions: list[ActionConfig] | None = None,
         on_auto_save_toggled: Callable[[bool], None] | None = None,
         auto_save_enabled: bool = True,
         on_auto_save_interval_changed: Callable[[int], None] | None = None,
@@ -47,6 +48,7 @@ class MenuController:
         self._create_format_menu(
             format_actions or [],
             heading_actions or [],
+            list_actions or [],
         )
         self._create_view_menu(
             view_actions,
@@ -142,11 +144,17 @@ class MenuController:
         self,
         actions: list[ActionConfig],
         heading_actions: list[ActionConfig],
+        list_actions: list[ActionConfig],
     ) -> None:
-        """Create the Format menu and its heading submenu."""
+        """Create the Format menu and its list and heading submenus."""
         format_menu = self._menu_bar.addMenu("Format")
 
         self._add_actions(format_menu, actions)
+
+        if list_actions:
+            format_menu.addSeparator()
+            list_menu = format_menu.addMenu("List")
+            self._add_actions(list_menu, list_actions)
 
         if heading_actions:
             format_menu.addSeparator()

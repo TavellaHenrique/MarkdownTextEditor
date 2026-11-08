@@ -8,7 +8,7 @@ from PySide6.QtGui import (
     QTextCursor,
     QTextFormat,
 )
-from PySide6.QtWidgets import QPlainTextEdit, QTextEdit, QWidget
+from PySide6.QtWidgets import QInputDialog, QPlainTextEdit, QTextEdit, QWidget
 
 from markdown_editor.typography import (
     EDITOR_DEFAULT_FONT_SIZE,
@@ -689,6 +689,42 @@ class CodeEditor(QPlainTextEdit):
         new_cursor = QTextCursor(self.document())
         new_cursor.setPosition(new_position)
         self.setTextCursor(new_cursor)
+
+    def insert_ordered_list(self) -> None:
+        """Insert a numbered Markdown list based on the user-selected size."""
+        item_count, confirmed = QInputDialog.getInt(
+            self,
+            "Ordered List",
+            "How many items?",
+            3,
+            1,
+            100,
+            1,
+        )
+
+        if not confirmed:
+            return
+
+        cursor = self.textCursor()
+        cursor.insertText("\n".join(f"{index}. " for index in range(1, item_count + 1)))
+
+    def insert_unordered_list(self) -> None:
+        """Insert a bullet Markdown list based on the user-selected size."""
+        item_count, confirmed = QInputDialog.getInt(
+            self,
+            "Unordered List",
+            "How many items?",
+            3,
+            1,
+            100,
+            1,
+        )
+
+        if not confirmed:
+            return
+
+        cursor = self.textCursor()
+        cursor.insertText("\n".join("- " for _ in range(item_count)))
 
     @property
     def font_size(self) -> int:

@@ -250,6 +250,11 @@ class MainWindow(QMainWindow):
             ("Insert Link", "Ctrl+K", self.editor.insert_link),
         ]
 
+        list_actions = [
+            ("Ordered List", "Ctrl+Alt+O", self.editor.insert_ordered_list),
+            ("Unordered List", "Ctrl+Alt+U", self.editor.insert_unordered_list),
+        ]
+
         heading_actions = [
             (
                 f"Heading {level}",
@@ -272,6 +277,7 @@ class MainWindow(QMainWindow):
             on_outline_toggled=self.outline.setVisible,
             format_actions=format_actions,
             heading_actions=heading_actions,
+            list_actions=list_actions,
             on_auto_save_toggled=self._set_auto_save_enabled,
             auto_save_enabled=self.auto_save_controller.is_enabled,
             on_auto_save_interval_changed=self._set_auto_save_interval,

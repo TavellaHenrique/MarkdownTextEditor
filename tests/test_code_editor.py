@@ -211,6 +211,36 @@ def test_insert_link_without_selection(qtbot):
     assert editor.textCursor().selectedText() == "text"
 
 
+def test_insert_ordered_list_inserts_markdown_list(qtbot, monkeypatch):
+    """Verify that ordered list insertion asks for the length and generates numbers."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    monkeypatch.setattr(
+        "markdown_editor.code_editor.QInputDialog.getInt",
+        lambda *args, **kwargs: (3, True),
+    )
+
+    editor.insert_ordered_list()
+
+    assert editor.toPlainText() == "1. \n2. \n3. "
+
+
+def test_insert_unordered_list_inserts_markdown_list(qtbot, monkeypatch):
+    """Verify that unordered list insertion asks for the length and creates markers."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    monkeypatch.setattr(
+        "markdown_editor.code_editor.QInputDialog.getInt",
+        lambda *args, **kwargs: (3, True),
+    )
+
+    editor.insert_unordered_list()
+
+    assert editor.toPlainText() == "- \n- \n- "
+
+
 @pytest.mark.parametrize(
     ("level", "expected"),
     [
