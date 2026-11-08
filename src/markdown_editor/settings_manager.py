@@ -14,6 +14,8 @@ class SettingsManager:
         "editor/font_size": 14,
         "preview/visible": True,
         "outline/visible": True,
+        "autosave/enabled": True,
+        "autosave/interval": 60_000,
     }
 
     def __init__(self, settings: QSettings | None = None) -> None:

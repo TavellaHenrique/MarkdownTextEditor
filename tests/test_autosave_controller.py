@@ -121,6 +121,21 @@ def test_autosave_timer_can_be_started(
     assert controller.is_active
 
 
+def test_autosave_can_be_disabled(document, save_callback):
+    """Verify that the automatic saving feature can be disabled."""
+    controller = create_controller(document, save_callback)
+
+    controller.set_enabled(False)
+
+    assert controller.is_enabled is False
+    assert controller.is_active is False
+
+    result = controller.save_if_needed()
+
+    assert result is False
+    save_callback.assert_not_called()
+
+
 def test_autosave_interval_can_be_changed(document, save_callback):
     """Verify that the timer interval can be updated."""
     controller = create_controller(document, save_callback)

@@ -16,6 +16,7 @@ class AutoSaveController(QObject):
         get_file_path: Callable[[], Path | None],
         save_callback: Callable[[], bool],
         interval: int = DEFAULT_INTERVAL,
+        enabled: bool = True,
         parent: QObject | None = None,
     ) -> None:
         """Initialize the automatic saving controller."""
@@ -27,13 +28,14 @@ class AutoSaveController(QObject):
         self._document = document
         self._get_file_path = get_file_path
         self._save_callback = save_callback
+        self._enabled = enabled
 
         self._timer = QTimer(self)
         self._timer.setInterval(interval)
         self._timer.timeout.connect(self.save_if_needed)
 
-        # Start the automatic saving timer.
-        self._timer.start()
+        if self._enabled:
+            self._timer.start()
 
     @property
     def interval(self) -> int:
@@ -45,13 +47,29 @@ class AutoSaveController(QObject):
         """Check whether automatic saving is active."""
         return self._timer.isActive()
 
+    @property
+    def is_enabled(self) -> bool:
+        """Check whether automatic saving is enabled."""
+        return self._enabled
+
     def start(self) -> None:
         """Start automatic saving."""
+        self._enabled = True
         self._timer.start()
 
     def stop(self) -> None:
         """Stop automatic saving."""
+        self._enabled = False
         self._timer.stop()
+
+    def set_enabled(self, enabled: bool) -> None:
+        """Enable or disable automatic saving."""
+        self._enabled = enabled
+
+        if enabled:
+            self._timer.start()
+        else:
+            self._timer.stop()
 
     def set_interval(self, interval: int) -> None:
         """Update the automatic saving interval."""

@@ -45,6 +45,18 @@ def test_window_initialization(main_window):
     assert main_window.document_controller.current_file_path is None
 
 
+def test_autosave_settings_restore_enabled_state(qtbot, settings_manager):
+    """Verify that autosave settings are restored from persistent storage."""
+    settings_manager.set("autosave/enabled", False)
+    settings_manager.set("autosave/interval", 30_000)
+
+    window = MainWindow(settings_manager=settings_manager)
+    qtbot.addWidget(window)
+
+    assert window.auto_save_controller.is_enabled is False
+    assert window.auto_save_controller.interval == 30_000
+
+
 def test_autosave_runs_for_modified_document(main_window, tmp_path):
     """Verify that the autosave controller saves modified documents with a path."""
     file_path = tmp_path / "document.md"

@@ -97,10 +97,21 @@ class MainWindow(QMainWindow):
 
     def _create_auto_save_controller(self):
         """Create the periodic save controller for the editor."""
+        interval = self.settings_manager.get(
+            "autosave/interval",
+            value_type=int,
+        )
+        enabled = self.settings_manager.get(
+            "autosave/enabled",
+            value_type=bool,
+        )
+
         self.auto_save_controller = AutoSaveController(
             document=self.editor.document(),
             get_file_path=lambda: self.document_controller.current_file_path,
             save_callback=self._save_file,
+            interval=interval,
+            enabled=enabled,
         )
 
     def _create_window_controller(self):
@@ -261,6 +272,10 @@ class MainWindow(QMainWindow):
             on_outline_toggled=self.outline.setVisible,
             format_actions=format_actions,
             heading_actions=heading_actions,
+            on_auto_save_toggled=self._set_auto_save_enabled,
+            auto_save_enabled=self.auto_save_controller.is_enabled,
+            on_auto_save_interval_changed=self._set_auto_save_interval,
+            auto_save_interval=self.auto_save_controller.interval,
         )
 
     def _restore_panel_visibility_settings(self):
@@ -391,6 +406,16 @@ class MainWindow(QMainWindow):
 
         self._apply_theme()
 
+    def _set_auto_save_enabled(self, enabled: bool):
+        """Enable or disable the automatic save feature."""
+        self.auto_save_controller.set_enabled(enabled)
+        self.settings_manager.set("autosave/enabled", enabled)
+
+    def _set_auto_save_interval(self, interval: int):
+        """Update the automatic save interval and persist it."""
+        self.auto_save_controller.set_interval(interval)
+        self.settings_manager.set("autosave/interval", interval)
+
     def _update_preview(self):
         """Update the preview using the current Markdown text."""
         self.preview_controller.update_preview(self.editor.toPlainText())
@@ -497,6 +522,16 @@ class MainWindow(QMainWindow):
         self.settings_manager.set(
             "window/preview_splitter",
             self.editor_preview_splitter.saveState(),
+        )
+
+        self.settings_manager.set(
+            "autosave/enabled",
+            self.auto_save_controller.is_enabled,
+        )
+
+        self.settings_manager.set(
+            "autosave/interval",
+            self.auto_save_controller.interval,
         )
 
         self.settings_manager.sync()
