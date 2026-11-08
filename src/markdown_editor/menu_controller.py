@@ -223,9 +223,7 @@ class MenuController:
             action.setChecked(theme_name == current_theme)
 
             action.triggered.connect(
-                lambda checked, name=theme_name: (
-                    on_theme_changed(name) if checked else None
-                )
+                lambda checked, name=theme_name: on_theme_changed(name) if checked else None
             )
 
             self._theme_action_group.addAction(action)

@@ -448,17 +448,13 @@ class MainWindow(QMainWindow):
                 self.find_bar.search_input.blockSignals(False)
 
                 self.find_bar.search_input.selectAll()
-                self.search_controller.update_search(
-                    preferred_selection=preferred_selection
-                )
+                self.search_controller.update_search(preferred_selection=preferred_selection)
 
             self.find_bar.search_input.setFocus()
 
         else:
             self.find_bar.show_bar(selected_text)
-            self.search_controller.update_search(
-                preferred_selection=preferred_selection
-            )
+            self.search_controller.update_search(preferred_selection=preferred_selection)
 
         self._position_find_bar()
 

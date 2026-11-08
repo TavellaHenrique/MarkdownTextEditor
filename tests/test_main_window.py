@@ -229,14 +229,10 @@ def test_find_action_exists(main_window):
     """Verify that the Find action exists with the correct shortcut."""
 
     edit_menu = next(
-        action.menu()
-        for action in main_window.menuBar().actions()
-        if action.text() == "Edit"
+        action.menu() for action in main_window.menuBar().actions() if action.text() == "Edit"
     )
 
-    find_action = next(
-        action for action in edit_menu.actions() if action.text() == "Find"
-    )
+    find_action = next(action for action in edit_menu.actions() if action.text() == "Find")
 
     assert find_action.shortcut().toString() == "Ctrl+F"
 

@@ -241,6 +241,90 @@ def test_insert_unordered_list_inserts_markdown_list(qtbot, monkeypatch):
     assert editor.toPlainText() == "- \n- \n- "
 
 
+def test_insert_ordered_list_itemizes_existing_line_content(qtbot, monkeypatch):
+    """Verify that an existing line is transformed into list items instead of appended."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("Existing line")
+
+    monkeypatch.setattr(
+        "markdown_editor.code_editor.QInputDialog.getInt",
+        lambda *args, **kwargs: (3, True),
+    )
+
+    cursor = editor.textCursor()
+    cursor.movePosition(QTextCursor.MoveOperation.End)
+    editor.setTextCursor(cursor)
+
+    editor.insert_ordered_list()
+
+    assert editor.toPlainText() == "1. Existing line\n2. \n3. "
+
+
+def test_insert_ordered_list_itemizes_selected_multiple_lines(qtbot):
+    """Verify that a multi-line selection is converted to ordered items without prompting."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("First line\nSecond line\nThird line")
+
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    cursor.setPosition(len("First line\nSecond line\nThird line"), QTextCursor.MoveMode.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    editor.insert_ordered_list()
+
+    assert editor.toPlainText() == "1. First line\n2. Second line\n3. Third line"
+
+
+def test_insert_ordered_list_reenumerates_selected_list_items(qtbot):
+    """Verify that a selection already formatted as a list is re-enumerated instead of nested."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("1. First\n2. Second\n3. Third")
+
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    cursor.setPosition(len(editor.toPlainText()), QTextCursor.MoveMode.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    editor.insert_ordered_list()
+
+    assert editor.toPlainText() == "1. First\n2. Second\n3. Third"
+
+
+def test_insert_unordered_list_removes_markers_from_selected_list_items(qtbot):
+    """Verify that unordered list conversion removes existing list markers from selected items."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("1. First\n2. Second\n3. Third")
+
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    cursor.setPosition(len(editor.toPlainText()), QTextCursor.MoveMode.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    editor.insert_unordered_list()
+
+    assert editor.toPlainText() == "- First\n- Second\n- Third"
+
+
+def test_insert_ordered_list_handles_utf16_selection_positions(qtbot):
+    """Verify that list insertion is safe when selections use UTF-16 cursor positions."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("Café\nMúsica")
+
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    cursor.setPosition(len(editor.toPlainText()), QTextCursor.MoveMode.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    editor.insert_ordered_list()
+
+    assert editor.toPlainText() == "1. Café\n2. Música"
+
+
 @pytest.mark.parametrize(
     ("level", "expected"),
     [

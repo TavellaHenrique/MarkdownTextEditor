@@ -48,9 +48,7 @@ def calculate_document_statistics(
     return DocumentStatistics(
         word_count=word_count,
         character_count=len(text),
-        character_count_without_whitespace=sum(
-            not character.isspace() for character in text
-        ),
+        character_count_without_whitespace=sum(not character.isspace() for character in text),
         line_count=line_count,
         paragraph_count=len(paragraphs),
         reading_time_minutes=reading_time,

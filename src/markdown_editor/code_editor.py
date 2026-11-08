@@ -165,9 +165,7 @@ class CodeEditor(QPlainTextEdit):
         if self._search_matches:
             # Preserve the requested occurrence when it still exists.
             if preferred_selection in self._search_matches:
-                self._current_match_index = self._search_matches.index(
-                    preferred_selection
-                )
+                self._current_match_index = self._search_matches.index(preferred_selection)
             else:
                 self._current_match_index = 0
 
@@ -183,9 +181,7 @@ class CodeEditor(QPlainTextEdit):
         if not self._search_matches:
             return False
 
-        self._current_match_index = (self._current_match_index + 1) % len(
-            self._search_matches
-        )
+        self._current_match_index = (self._current_match_index + 1) % len(self._search_matches)
 
         self._select_current_match()
         self._update_extra_selections()
@@ -198,9 +194,7 @@ class CodeEditor(QPlainTextEdit):
         if not self._search_matches:
             return False
 
-        self._current_match_index = (self._current_match_index - 1) % len(
-            self._search_matches
-        )
+        self._current_match_index = (self._current_match_index - 1) % len(self._search_matches)
 
         self._select_current_match()
         self._update_extra_selections()
@@ -245,9 +239,7 @@ class CodeEditor(QPlainTextEdit):
                 )
 
                 normalized_character = "".join(
-                    char
-                    for char in normalized_character
-                    if unicodedata.category(char) != "Mn"
+                    char for char in normalized_character if unicodedata.category(char) != "Mn"
                 )
 
             if not case_sensitive:
@@ -258,9 +250,7 @@ class CodeEditor(QPlainTextEdit):
 
             for normalized_char in normalized_character:
                 normalized_text.append(normalized_char)
-                position_map.append(
-                    (source_position, source_position + character_length)
-                )
+                position_map.append((source_position, source_position + character_length))
 
             source_position += character_length
 
@@ -385,9 +375,7 @@ class CodeEditor(QPlainTextEdit):
         block = self.firstVisibleBlock()
         block_number = block.blockNumber()
 
-        top = round(
-            self.blockBoundingGeometry(block).translated(self.contentOffset()).top()
-        )
+        top = round(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
 
         bottom = top + round(self.blockBoundingRect(block).height())
 
@@ -682,20 +670,49 @@ class CodeEditor(QPlainTextEdit):
             self._utf16_length(content),
         )
 
-        new_position = (
-            block.position() + self._utf16_length(new_prefix) + content_position
-        )
+        new_position = block.position() + self._utf16_length(new_prefix) + content_position
 
         new_cursor = QTextCursor(self.document())
         new_cursor.setPosition(new_position)
         self.setTextCursor(new_cursor)
 
+    def _normalize_list_item(self, line: str) -> str:
+        """Remove an existing Markdown list marker from a line."""
+        stripped = line.strip()
+        if not stripped:
+            return ""
+
+        match = re.match(r"^(?:\d+\.|\*|-)\s*(.*)$", stripped)
+        if match:
+            return match.group(1).strip()
+
+        return stripped
+
     def insert_ordered_list(self) -> None:
-        """Insert a numbered Markdown list based on the user-selected size."""
+        """Insert or reformat a numbered Markdown list from the selection or prompt."""
+        cursor = self.textCursor()
+
+        if cursor.hasSelection():
+            selected_text = self._get_text_range(
+                cursor.selectionStart(),
+                cursor.selectionEnd(),
+            )
+            lines = [line.rstrip() for line in selected_text.splitlines()]
+            if lines and any(line.strip() for line in lines):
+                normalized_lines = [
+                    self._normalize_list_item(line) for line in lines if line.strip()
+                ]
+                if normalized_lines:
+                    replacement = "\n".join(
+                        f"{index}. {line}" for index, line in enumerate(normalized_lines, start=1)
+                    )
+                    cursor.insertText(replacement)
+                    return
+
         item_count, confirmed = QInputDialog.getInt(
             self,
             "Ordered List",
-            "How many items?",
+            "How many items should the list contain?",
             3,
             1,
             100,
@@ -705,11 +722,27 @@ class CodeEditor(QPlainTextEdit):
         if not confirmed:
             return
 
-        cursor = self.textCursor()
-        cursor.insertText("\n".join(f"{index}. " for index in range(1, item_count + 1)))
+        self._insert_list_lines(item_count, lambda index: f"{index}. ")
 
     def insert_unordered_list(self) -> None:
-        """Insert a bullet Markdown list based on the user-selected size."""
+        """Insert or strip list formatting from the selection or prompt."""
+        cursor = self.textCursor()
+
+        if cursor.hasSelection():
+            selected_text = self._get_text_range(
+                cursor.selectionStart(),
+                cursor.selectionEnd(),
+            )
+            lines = [line.rstrip() for line in selected_text.splitlines()]
+            if lines and any(line.strip() for line in lines):
+                normalized_lines = [
+                    self._normalize_list_item(line) for line in lines if line.strip()
+                ]
+                if normalized_lines:
+                    replacement = "\n".join(f"- {line}" for line in normalized_lines)
+                    cursor.insertText(replacement)
+                    return
+
         item_count, confirmed = QInputDialog.getInt(
             self,
             "Unordered List",
@@ -723,8 +756,33 @@ class CodeEditor(QPlainTextEdit):
         if not confirmed:
             return
 
+        self._insert_list_lines(item_count, lambda _index: "- ")
+
+    def _insert_list_lines(
+        self,
+        item_count: int,
+        formatter: callable,
+    ) -> None:
+        """Insert a list using the current line content when present."""
         cursor = self.textCursor()
-        cursor.insertText("\n".join("- " for _ in range(item_count)))
+        block = cursor.block()
+        current_text = block.text().strip()
+
+        if current_text:
+            replacement = "\n".join(
+                f"{formatter(index)}{current_text}" if index == 1 else f"{formatter(index)}"
+                for index in range(1, item_count + 1)
+            )
+
+            block_cursor = QTextCursor(block)
+            block_cursor.movePosition(
+                QTextCursor.MoveOperation.EndOfBlock,
+                QTextCursor.MoveMode.KeepAnchor,
+            )
+            block_cursor.insertText(replacement)
+            return
+
+        cursor.insertText("\n".join(f"{formatter(index)}" for index in range(1, item_count + 1)))
 
     @property
     def font_size(self) -> int:

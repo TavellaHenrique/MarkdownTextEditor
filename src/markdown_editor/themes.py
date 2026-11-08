@@ -101,9 +101,7 @@ def build_preview_html(markdown_html: str, theme: Theme) -> str:
         "muted-foreground": theme.muted_foreground,
     }
 
-    css_variables = "\n".join(
-        f"    --{name}: {value};" for name, value in theme_variables.items()
-    )
+    css_variables = "\n".join(f"    --{name}: {value};" for name, value in theme_variables.items())
 
     return f"""
     <!DOCTYPE html>

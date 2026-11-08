@@ -92,9 +92,7 @@ def test_extract_headings_from_document():
     """Test extracting headings with different levels."""
     parser = MarkdownParser()
 
-    markdown_text = (
-        "# Introduction\n\nSome text.\n\n## Installation\n\n### Requirements\n"
-    )
+    markdown_text = "# Introduction\n\nSome text.\n\n## Installation\n\n### Requirements\n"
 
     result = parser.extract_headings(markdown_text)
 
