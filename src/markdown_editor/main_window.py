@@ -37,10 +37,15 @@ class MainWindow(QMainWindow):
     INITIAL_HEIGHT = 500
     MESSAGE_TIMEOUT = 5000  # ms
 
-    def __init__(self):
+    def __init__(
+        self,
+        settings_manager: SettingsManager | None = None,
+    ):
         super().__init__()
 
-        self.settings_manager = SettingsManager()
+        self.settings_manager = (
+            settings_manager if settings_manager is not None else SettingsManager()
+        )
 
         self.document_controller = DocumentController()
         self.markdown_parser = MarkdownParser()
