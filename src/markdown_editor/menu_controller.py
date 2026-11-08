@@ -36,7 +36,13 @@ class MenuController:
         self._outline_action: QAction | None = None
         self._auto_save_action: QAction | None = None
 
-        self._create_file_menu(file_actions)
+        self._create_file_menu(
+            file_actions,
+            on_auto_save_toggled,
+            auto_save_enabled,
+            on_auto_save_interval_changed,
+            auto_save_interval,
+        )
         self._create_edit_menu(edit_actions)
         self._create_format_menu(
             format_actions or [],
@@ -49,10 +55,6 @@ class MenuController:
             on_theme_changed,
             on_preview_toggled,
             on_outline_toggled,
-            on_auto_save_toggled,
-            auto_save_enabled,
-            on_auto_save_interval_changed,
-            auto_save_interval,
         )
 
     @property
@@ -84,10 +86,45 @@ class MenuController:
 
         return self._auto_save_action
 
-    def _create_file_menu(self, actions: list[ActionConfig]) -> None:
+    def _create_file_menu(
+        self,
+        actions: list[ActionConfig],
+        on_auto_save_toggled: Callable[[bool], None] | None = None,
+        auto_save_enabled: bool = True,
+        on_auto_save_interval_changed: Callable[[int], None] | None = None,
+        auto_save_interval: int = 60_000,
+    ) -> None:
         """Create the File menu."""
         file_menu = self._menu_bar.addMenu("File")
         self._add_actions(file_menu, actions)
+        file_menu.addSeparator()
+
+        self._auto_save_action = QAction("Auto Save", self._parent)
+        self._auto_save_action.setCheckable(True)
+        self._auto_save_action.setChecked(auto_save_enabled)
+
+        if on_auto_save_toggled is not None:
+            self._auto_save_action.toggled.connect(on_auto_save_toggled)
+
+        file_menu.addAction(self._auto_save_action)
+
+        if on_auto_save_interval_changed is not None:
+            auto_save_interval_menu = file_menu.addMenu("Auto Save Interval")
+            interval_values = (15_000, 30_000, 60_000, 120_000)
+            interval_group = QActionGroup(self._parent)
+            interval_group.setExclusive(True)
+
+            for interval in interval_values:
+                interval_action = QAction(f"{interval // 1000} seconds", self._parent)
+                interval_action.setCheckable(True)
+                interval_action.setChecked(interval == auto_save_interval)
+                interval_group.addAction(interval_action)
+                interval_action.triggered.connect(
+                    lambda checked, value=interval: (
+                        on_auto_save_interval_changed(value) if checked else None
+                    )
+                )
+                auto_save_interval_menu.addAction(interval_action)
 
     def _create_edit_menu(self, actions: list[ActionConfig]) -> None:
         """Create the Edit menu."""
@@ -124,10 +161,6 @@ class MenuController:
         on_theme_changed: Callable[[str], None],
         on_preview_toggled: Callable[[bool], None],
         on_outline_toggled: Callable[[bool], None] | None,
-        on_auto_save_toggled: Callable[[bool], None] | None,
-        auto_save_enabled: bool,
-        on_auto_save_interval_changed: Callable[[int], None] | None,
-        auto_save_interval: int,
     ) -> None:
         """Create the View menu and its submenus."""
         view_menu = self._menu_bar.addMenu("View")
@@ -150,30 +183,6 @@ class MenuController:
             self._outline_action.toggled.connect(on_outline_toggled)
 
         view_menu.addAction(self._outline_action)
-
-        self._auto_save_action = QAction("Auto Save", self._parent)
-        self._auto_save_action.setCheckable(True)
-        self._auto_save_action.setChecked(auto_save_enabled)
-
-        if on_auto_save_toggled is not None:
-            self._auto_save_action.toggled.connect(on_auto_save_toggled)
-
-        view_menu.addAction(self._auto_save_action)
-
-        if on_auto_save_interval_changed is not None:
-            auto_save_interval_menu = view_menu.addMenu("Auto Save Interval")
-            interval_values = (15_000, 30_000, 60_000, 120_000)
-
-            for interval in interval_values:
-                interval_action = QAction(f"{interval // 1000} seconds", self._parent)
-                interval_action.setCheckable(True)
-                interval_action.setChecked(interval == auto_save_interval)
-                interval_action.triggered.connect(
-                    lambda checked, value=interval: (
-                        on_auto_save_interval_changed(value) if checked else None
-                    )
-                )
-                auto_save_interval_menu.addAction(interval_action)
 
         self._create_theme_menu(
             view_menu,
