@@ -45,6 +45,20 @@ def test_window_initialization(main_window):
     assert main_window.document_controller.current_file_path is None
 
 
+def test_autosave_runs_for_modified_document(main_window, tmp_path):
+    """Verify that the autosave controller saves modified documents with a path."""
+    file_path = tmp_path / "document.md"
+    main_window.document_controller.save_document(file_path, "# Original")
+    main_window.editor.setPlainText("# Updated content")
+    main_window.editor.document().setModified(True)
+
+    result = main_window.auto_save_controller.save_if_needed()
+
+    assert result is True
+    assert file_path.read_text(encoding="utf-8") == "# Updated content"
+    assert main_window.editor.document().isModified() is False
+
+
 def test_preview_updates_when_editor_text_changes(main_window):
     """Verify that the preview renders the editor content."""
     main_window.editor.setPlainText("# Preview Test")

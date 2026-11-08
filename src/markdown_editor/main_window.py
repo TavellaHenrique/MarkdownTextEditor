@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from markdown_editor.autosave_controller import AutoSaveController
 from markdown_editor.code_editor import CodeEditor
 from markdown_editor.document_controller import DocumentController
 from markdown_editor.document_outline import DocumentOutline
@@ -63,6 +64,7 @@ class MainWindow(QMainWindow):
             self.theme_controller.set_theme(saved_theme)
 
         self._create_editor()
+        self._create_auto_save_controller()
         self._create_window_controller()
         self._create_find_bar()
         self._create_preview()
@@ -92,6 +94,14 @@ class MainWindow(QMainWindow):
 
         # Send a signal when changes on the text are detected
         self.editor.textChanged.connect(self._update_preview)
+
+    def _create_auto_save_controller(self):
+        """Create the periodic save controller for the editor."""
+        self.auto_save_controller = AutoSaveController(
+            document=self.editor.document(),
+            get_file_path=lambda: self.document_controller.current_file_path,
+            save_callback=self._save_file,
+        )
 
     def _create_window_controller(self):
         """Initialize the window controller."""
