@@ -1,27 +1,41 @@
 import pytest
+from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QMessageBox
 
 from markdown_editor.document_controller import DocumentController
 from markdown_editor.file_manager import FileManager
 from markdown_editor.main_window import MainWindow
+from markdown_editor.settings_manager import SettingsManager
 
 
 @pytest.fixture
-def main_window(qtbot, monkeypatch):
+def main_window(qtbot, monkeypatch, settings_manager):
     """Provide a MainWindow instance without interactive dialogs."""
-    # Simulate discarding changes when the test closes the window.
     monkeypatch.setattr(
         "markdown_editor.main_window.QMessageBox.warning",
         lambda *args: QMessageBox.StandardButton.Discard,
     )
 
-    window = MainWindow()
+    window = MainWindow(settings_manager=settings_manager)
     qtbot.addWidget(window)
 
     yield window
 
     # Clear the modified state before widget cleanup.
     window.editor.document().setModified(False)
+
+
+@pytest.fixture
+def settings_manager(tmp_path):
+    """Provide an isolated settings manager for each test."""
+    settings_file = tmp_path / "settings.ini"
+
+    settings = QSettings(
+        str(settings_file),
+        QSettings.Format.IniFormat,
+    )
+
+    return SettingsManager(settings)
 
 
 def test_window_initialization(main_window):
@@ -238,8 +252,28 @@ def test_find_bar_close_restores_editor_focus(main_window, qtbot):
 
 
 def test_document_outline_is_visible_by_default(main_window):
-    """Verify that the document outline is not explicitly hidden."""
+    """Verify that the document outline is visible by default."""
     assert not main_window.outline.isHidden()
+
+
+def test_document_outline_visibility_restores_true(qtbot, settings_manager):
+    """Verify that a saved visible state is restored."""
+    settings_manager.set("outline/visible", True)
+
+    window = MainWindow(settings_manager=settings_manager)
+    qtbot.addWidget(window)
+
+    assert not window.outline.isHidden()
+
+
+def test_document_outline_visibility_restores_false(qtbot, settings_manager):
+    """Verify that a saved hidden state is restored."""
+    settings_manager.set("outline/visible", False)
+
+    window = MainWindow(settings_manager=settings_manager)
+    qtbot.addWidget(window)
+
+    assert window.outline.isHidden()
 
 
 def test_document_outline_updates_when_text_changes(main_window):
