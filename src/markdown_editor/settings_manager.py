@@ -13,6 +13,7 @@ class SettingsManager:
         "appearance/theme": "dark",
         "editor/font_size": 14,
         "preview/visible": True,
+        "outline/visible": True,
     }
 
     def __init__(self, settings: QSettings | None = None) -> None:

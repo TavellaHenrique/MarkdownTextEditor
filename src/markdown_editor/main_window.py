@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import QByteArray, QEvent, Qt
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -22,6 +22,7 @@ from markdown_editor.markdown_parser import MarkdownParser
 from markdown_editor.menu_controller import MenuController
 from markdown_editor.preview_controller import PreviewController
 from markdown_editor.search_controller import SearchController
+from markdown_editor.settings_manager import SettingsManager
 from markdown_editor.theme_controller import ThemeController
 from markdown_editor.themes import (
     load_application_stylesheet,
@@ -39,7 +40,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # Initialize document management.
+        self.settings_manager = SettingsManager()
+
         self.document_controller = DocumentController()
         self.markdown_parser = MarkdownParser()
 
@@ -47,13 +49,23 @@ class MainWindow(QMainWindow):
 
         self.theme_controller = ThemeController(initial_theme="dark")
 
+        saved_theme = self.settings_manager.get(
+            "appearance/theme",
+            value_type=str,
+        )
+
+        if saved_theme in self.theme_controller.available_themes:
+            self.theme_controller.set_theme(saved_theme)
+
         self._create_editor()
         self._create_window_controller()
         self._create_find_bar()
         self._create_preview()
         self._create_outline()
         self._create_splitter()
+        self._restore_window_state()
         self._create_menu_controller()
+        self._restore_panel_visibility_settings()
         self._create_status_bar()
         self._create_search_controller()
 
@@ -65,6 +77,13 @@ class MainWindow(QMainWindow):
 
         self.editor = CodeEditor()
         self.editor.setPlaceholderText("Out of words?")
+
+        self.editor.set_font_size(
+            self.settings_manager.get(
+                "editor/font_size",
+                value_type=int,
+            )
+        )
 
         # Send a signal when changes on the text are detected
         self.editor.textChanged.connect(self._update_preview)
@@ -146,6 +165,35 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(self.main_splitter)
 
+    def _restore_window_state(self) -> None:
+        """Restore the window geometry and splitter positions."""
+        geometry = self.settings_manager.get(
+            "window/geometry",
+            QByteArray(),
+            QByteArray,
+        )
+
+        if not geometry.isEmpty():
+            self.restoreGeometry(geometry)
+
+        main_splitter_state = self.settings_manager.get(
+            "window/main_splitter",
+            QByteArray(),
+            QByteArray,
+        )
+
+        if not main_splitter_state.isEmpty():
+            self.main_splitter.restoreState(main_splitter_state)
+
+        preview_splitter_state = self.settings_manager.get(
+            "window/preview_splitter",
+            QByteArray(),
+            QByteArray,
+        )
+
+        if not preview_splitter_state.isEmpty():
+            self.editor_preview_splitter.restoreState(preview_splitter_state)
+
     def _create_menu_controller(self):
         """Initialize the menu controller."""
         file_actions = [
@@ -199,6 +247,22 @@ class MainWindow(QMainWindow):
             format_actions=format_actions,
             heading_actions=heading_actions,
         )
+
+    def _restore_panel_visibility_settings(self):
+        # Restore panel visibility settings.
+        preview_visible = self.settings_manager.get(
+            "preview/visible",
+            value_type=bool,
+        )
+
+        outline_visible = self.settings_manager.get(
+            "outline/visible",
+            value_type=bool,
+        )
+
+        self.menu_controller.preview_action.setChecked(preview_visible)
+        self.menu_controller.outline_action.setChecked(outline_visible)
+        self.menu_controller.preview_action.setChecked(preview_visible)
 
     def _create_status_bar(self):
         """Create and configure the application status bar."""
@@ -382,6 +446,46 @@ class MainWindow(QMainWindow):
         if not message:
             self.statusBar().showMessage("Ready")
 
+    def _save_settings(self) -> None:
+        """Persist application preferences and window state."""
+        self.settings_manager.set(
+            "appearance/theme",
+            self.theme_controller.current_theme_name,
+        )
+
+        self.settings_manager.set(
+            "editor/font_size",
+            self.editor.font_size,
+        )
+
+        self.settings_manager.set(
+            "preview/visible",
+            self.menu_controller.preview_action.isChecked(),
+        )
+
+        # Save outline visibility.
+        self.settings_manager.set(
+            "outline/visible",
+            self.menu_controller.outline_action.isChecked(),
+        )
+
+        self.settings_manager.set(
+            "window/geometry",
+            self.saveGeometry(),
+        )
+
+        self.settings_manager.set(
+            "window/main_splitter",
+            self.main_splitter.saveState(),
+        )
+
+        self.settings_manager.set(
+            "window/preview_splitter",
+            self.editor_preview_splitter.saveState(),
+        )
+
+        self.settings_manager.sync()
+
     def _open_file(self):
         """Open a Markdown file."""
         if not self.window_controller.confirm_save_changes():
@@ -472,8 +576,9 @@ class MainWindow(QMainWindow):
         return True
 
     def closeEvent(self, event):
-        """Prevent closing the application with unsaved changes."""
+        """Save settings before closing the application."""
         if self.window_controller.can_close():
+            self._save_settings()
             event.accept()
         else:
             event.ignore()

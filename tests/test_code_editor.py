@@ -363,3 +363,33 @@ def test_format_italic_on_entire_document(qtbot):
     editor.format_italic()
 
     assert editor.toPlainText() == "*First line\nSecond line*"
+
+
+def test_set_font_size(qtbot):
+    """Verify that the editor font size can be changed."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    editor.set_font_size(18)
+
+    assert editor.font_size == 18
+
+
+def test_set_font_size_respects_maximum(qtbot):
+    """Verify that the font size cannot exceed the maximum."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    editor.set_font_size(CodeEditor.MAX_FONT_SIZE + 10)
+
+    assert editor.font_size == CodeEditor.MAX_FONT_SIZE
+
+
+def test_set_font_size_respects_minimum(qtbot):
+    """Verify that the font size cannot go below the minimum."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    editor.set_font_size(CodeEditor.MIN_FONT_SIZE - 10)
+
+    assert editor.font_size == CodeEditor.MIN_FONT_SIZE

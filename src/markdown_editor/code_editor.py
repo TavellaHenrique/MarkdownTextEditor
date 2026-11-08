@@ -690,6 +690,18 @@ class CodeEditor(QPlainTextEdit):
         new_cursor.setPosition(new_position)
         self.setTextCursor(new_cursor)
 
+    @property
+    def font_size(self) -> int:
+        """Return the current editor font size."""
+        return self._current_font_size
+
+    def set_font_size(self, size: int) -> None:
+        """Set the editor font size."""
+        if not isinstance(size, int) or isinstance(size, bool):
+            raise ValueError("Font size must be an integer.")
+
+        self._set_font_size(size)
+
     def increase_font_size(self):
         """Increase the editor font size."""
         new_size = min(

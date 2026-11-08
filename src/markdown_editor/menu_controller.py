@@ -28,6 +28,8 @@ class MenuController:
         self._menu_bar = menu_bar
         self._parent = parent
         self._theme_actions: dict[str, QAction] = {}
+        self._preview_action: QAction | None = None
+        self._outline_action: QAction | None = None
 
         self._create_file_menu(file_actions)
         self._create_edit_menu(edit_actions)
@@ -48,6 +50,22 @@ class MenuController:
     def theme_actions(self) -> dict[str, QAction]:
         """Return the available theme actions."""
         return self._theme_actions
+
+    @property
+    def preview_action(self) -> QAction:
+        """Return the preview visibility action."""
+        if self._preview_action is None:
+            raise RuntimeError("Preview action has not been initialized.")
+
+        return self._preview_action
+
+    @property
+    def outline_action(self) -> QAction:
+        """Return the outline visibility action."""
+        if self._outline_action is None:
+            raise RuntimeError("Outline action has not been initialized.")
+
+        return self._outline_action
 
     def _create_file_menu(self, actions: list[ActionConfig]) -> None:
         """Create the File menu."""
@@ -93,23 +111,24 @@ class MenuController:
         """Create the View menu and its submenus."""
         view_menu = self._menu_bar.addMenu("View")
 
-        preview_action = QAction("Show Preview", self._parent)
-        preview_action.setShortcut("Ctrl+P")
-        preview_action.setCheckable(True)
-        preview_action.setChecked(True)
-        preview_action.toggled.connect(on_preview_toggled)
+        # Create the preview visibility action.
+        self._preview_action = QAction("Show Preview", self._parent)
+        self._preview_action.setShortcut("Ctrl+P")
+        self._preview_action.setCheckable(True)
+        self._preview_action.setChecked(True)
+        self._preview_action.toggled.connect(on_preview_toggled)
 
-        view_menu.addAction(preview_action)
+        view_menu.addAction(self._preview_action)
 
-        outline_action = QAction("Show Document Outline", self._parent)
-        outline_action.setShortcut("Ctrl+Shift+O")
-        outline_action.setCheckable(True)
-        outline_action.setChecked(True)
+        self._outline_action = QAction("Show Document Outline", self._parent)
+        self._outline_action.setShortcut("Ctrl+Shift+O")
+        self._outline_action.setCheckable(True)
+        self._outline_action.setChecked(True)
 
         if on_outline_toggled is not None:
-            outline_action.toggled.connect(on_outline_toggled)
+            self._outline_action.toggled.connect(on_outline_toggled)
 
-        view_menu.addAction(outline_action)
+        view_menu.addAction(self._outline_action)
 
         self._create_theme_menu(
             view_menu,
