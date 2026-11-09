@@ -247,7 +247,16 @@ class MainWindow(QMainWindow):
         format_actions = [
             ("Bold", "Ctrl+B", self.editor.format_bold),
             ("Italic", "Ctrl+I", self.editor.format_italic),
-            ("Insert Link", "Ctrl+K", self.editor.insert_link),
+            ("Horizontal Rule", "Ctrl+Alt+H", self.editor.insert_horizontal_rule),
+            ("Line Break", "Ctrl+Shift+R", self.editor.insert_line_break),
+            ("Blockquote", "Ctrl+Alt+Q", self.editor.insert_blockquote),
+            ("Link", "Ctrl+K", self.editor.insert_link),
+            ("Hidden Comment", "Ctrl+Shift+C", self.editor.insert_hidden_comment),
+        ]
+
+        code_actions = [
+            ("Inline Code", "Ctrl+Alt+C", self.editor.insert_inline_code),
+            ("Fenced Code Block", "Ctrl+Alt+F", self.editor.insert_fenced_code_block),
         ]
 
         list_actions = [
@@ -278,6 +287,7 @@ class MainWindow(QMainWindow):
             format_actions=format_actions,
             heading_actions=heading_actions,
             list_actions=list_actions,
+            code_actions=code_actions,
             on_auto_save_toggled=self._set_auto_save_enabled,
             auto_save_enabled=self.auto_save_controller.is_enabled,
             on_auto_save_interval_changed=self._set_auto_save_interval,

@@ -611,17 +611,20 @@ class CodeEditor(QPlainTextEdit):
         self._wrap_selection("*", "*")
 
     def insert_link(self) -> None:
-        """Insert a Markdown link using the current selection."""
+        """Insert a Markdown link with the text, URL, and hover title format."""
         cursor = self.textCursor()
         start = cursor.selectionStart()
         selected_text = cursor.selectedText().replace("\u2029", "\n")
+        link_target = "url"
+        hover_title = "title on hover"
+        link_text = selected_text if cursor.hasSelection() else "text"
+        complete_link = f'[{link_text}]({link_target} "{hover_title}")'
 
         if cursor.hasSelection():
-            cursor.insertText(f"[{selected_text}](url)")
+            cursor.insertText(complete_link)
 
-            # Select the URL placeholder for immediate editing.
-            url_start = start + self._utf16_length(f"[{selected_text}](")
-            url_end = url_start + self._utf16_length("url")
+            url_start = start + self._utf16_length(f"[{link_text}](")
+            url_end = url_start + self._utf16_length(link_target)
 
             cursor = QTextCursor(self.document())
             cursor.setPosition(url_start)
@@ -630,9 +633,8 @@ class CodeEditor(QPlainTextEdit):
                 QTextCursor.MoveMode.KeepAnchor,
             )
         else:
-            cursor.insertText("[text](url)")
+            cursor.insertText(complete_link)
 
-            # Select the link text placeholder.
             cursor = QTextCursor(self.document())
             cursor.setPosition(start + 1)
             cursor.setPosition(
@@ -641,6 +643,60 @@ class CodeEditor(QPlainTextEdit):
             )
 
         self.setTextCursor(cursor)
+
+    def insert_line_break(self) -> None:
+        """Insert a Markdown line break tag."""
+        cursor = self.textCursor()
+        cursor.insertText("<br>")
+
+    def insert_hidden_comment(self) -> None:
+        """Insert a Markdown hidden comment."""
+        cursor = self.textCursor()
+        cursor.insertText("[hidden comment]: #")
+
+    def insert_blockquote(self) -> None:
+        """Prefix the current selection or cursor with a Markdown blockquote."""
+        cursor = self.textCursor()
+
+        if cursor.hasSelection():
+            selected_text = self._get_text_range(
+                cursor.selectionStart(),
+                cursor.selectionEnd(),
+            )
+            lines = [line.rstrip() for line in selected_text.splitlines()]
+            if not lines:
+                lines = [""]
+
+            replacement = "\n".join(f"> {line}" if line else ">" for line in lines)
+            cursor.insertText(replacement)
+            return
+
+        start = cursor.position()
+        cursor.insertText("> ")
+
+        new_cursor = QTextCursor(self.document())
+        new_cursor.setPosition(start + self._utf16_length("> "))
+        self.setTextCursor(new_cursor)
+
+    def insert_inline_code(self) -> None:
+        """Wrap the current selection or cursor with inline code markers."""
+        self._wrap_selection("`", "`")
+
+    def insert_horizontal_rule(self) -> None:
+        """Insert a Markdown horizontal rule at the current cursor position."""
+        cursor = self.textCursor()
+        cursor.insertText("---")
+
+    def insert_fenced_code_block(self) -> None:
+        """Insert a Markdown fenced code block at the current cursor position."""
+        cursor = self.textCursor()
+        start = cursor.position()
+        inserted = "```\n\n```"
+        cursor.insertText(inserted)
+
+        new_cursor = QTextCursor(self.document())
+        new_cursor.setPosition(start + self._utf16_length("```\n"))
+        self.setTextCursor(new_cursor)
 
     def set_heading_level(self, level: int) -> None:
         """Apply a Markdown heading level to the current line."""

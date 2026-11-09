@@ -207,7 +207,7 @@ def test_insert_link_with_selected_text(qtbot):
 
     editor.insert_link()
 
-    assert editor.toPlainText() == "[OpenAI](url)"
+    assert editor.toPlainText() == '[OpenAI](url "title on hover")'
     assert editor.textCursor().selectedText() == "url"
 
 
@@ -218,8 +218,80 @@ def test_insert_link_without_selection(qtbot):
 
     editor.insert_link()
 
-    assert editor.toPlainText() == "[text](url)"
+    assert editor.toPlainText() == '[text](url "title on hover")'
     assert editor.textCursor().selectedText() == "text"
+
+
+def test_insert_line_break_inserts_html_break(qtbot):
+    """Verify that a line break inserts an HTML break tag."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    editor.insert_line_break()
+
+    assert editor.toPlainText() == "<br>"
+
+
+def test_insert_hidden_comment_inserts_markdown_comment(qtbot):
+    """Verify that a markdown hidden comment is inserted."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    editor.insert_hidden_comment()
+
+    assert editor.toPlainText() == "[hidden comment]: #"
+
+
+def test_insert_blockquote_prefixes_selected_lines(qtbot):
+    """Verify that the selected text is converted into a Markdown blockquote."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("First line\nSecond line")
+
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    cursor.setPosition(len(editor.toPlainText()), QTextCursor.MoveMode.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    editor.insert_blockquote()
+
+    assert editor.toPlainText() == "> First line\n> Second line"
+
+
+def test_insert_inline_code_wraps_selection(qtbot):
+    """Verify that inline code wraps a selection in backticks."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("print(1)")
+
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    cursor.setPosition(len("print(1)"), QTextCursor.MoveMode.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    editor.insert_inline_code()
+
+    assert editor.toPlainText() == "`print(1)`"
+
+
+def test_insert_horizontal_rule_adds_markdown_divider(qtbot):
+    """Verify that a horizontal rule is inserted as a Markdown separator."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    editor.insert_horizontal_rule()
+
+    assert editor.toPlainText() == "---"
+
+
+def test_insert_fenced_code_block_adds_triple_backticks(qtbot):
+    """Verify that fenced code blocks are inserted with opening and closing markers."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    editor.insert_fenced_code_block()
+
+    assert editor.toPlainText() == "```\n\n```"
 
 
 def test_insert_ordered_list_inserts_markdown_list(qtbot, monkeypatch):

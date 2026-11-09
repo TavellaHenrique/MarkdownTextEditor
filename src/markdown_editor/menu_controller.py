@@ -24,6 +24,7 @@ class MenuController:
         format_actions: list[ActionConfig] | None = None,
         heading_actions: list[ActionConfig] | None = None,
         list_actions: list[ActionConfig] | None = None,
+        code_actions: list[ActionConfig] | None = None,
         on_auto_save_toggled: Callable[[bool], None] | None = None,
         auto_save_enabled: bool = True,
         on_auto_save_interval_changed: Callable[[int], None] | None = None,
@@ -49,6 +50,7 @@ class MenuController:
             format_actions or [],
             heading_actions or [],
             list_actions or [],
+            code_actions or [],
         )
         self._create_view_menu(
             view_actions,
@@ -145,21 +147,33 @@ class MenuController:
         actions: list[ActionConfig],
         heading_actions: list[ActionConfig],
         list_actions: list[ActionConfig],
+        code_actions: list[ActionConfig],
     ) -> None:
-        """Create the Format menu and its list and heading submenus."""
+        """Create the Format menu and its subgroups."""
         format_menu = self._menu_bar.addMenu("Format")
 
-        self._add_actions(format_menu, actions)
+        self._add_actions(format_menu, actions[:2])
+
+        if actions[2:]:
+            format_menu.addSeparator()
+            self._add_actions(format_menu, actions[2:])
+
+        if heading_actions:
+            format_menu.addSeparator()
+            heading_menu = format_menu.addMenu("Heading")
+            self._add_actions(heading_menu, heading_actions)
+
+        if code_actions:
+            format_menu.addSeparator()
+            code_menu = format_menu.addMenu("Code")
+            self._add_actions(code_menu, code_actions)
 
         if list_actions:
             format_menu.addSeparator()
             list_menu = format_menu.addMenu("List")
             self._add_actions(list_menu, list_actions)
 
-        if heading_actions:
-            format_menu.addSeparator()
-            heading_menu = format_menu.addMenu("Heading")
-            self._add_actions(heading_menu, heading_actions)
+        format_menu.addSeparator()
 
     def _create_view_menu(
         self,
