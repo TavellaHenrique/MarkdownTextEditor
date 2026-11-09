@@ -380,7 +380,7 @@ class CodeEditor(QPlainTextEdit):
 
         painter.fillRect(
             event.rect(),
-            self._gutter_background,
+            QColor(0, 0, 0, 0),
         )
 
         block = self.firstVisibleBlock()
@@ -414,6 +414,16 @@ class CodeEditor(QPlainTextEdit):
                     font_metrics.height(),
                     Qt.AlignmentFlag.AlignRight,
                     line_number,
+                )
+
+                separator_color = QColor(self._gutter_foreground)
+                separator_color.setAlpha(170)
+                painter.fillRect(
+                    self.line_number_area.width() - 2,
+                    top,
+                    2,
+                    font_metrics.height(),
+                    separator_color,
                 )
 
             block = block.next()
