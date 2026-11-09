@@ -75,6 +75,8 @@ class CodeEditor(QPlainTextEdit):
 
         self._gutter_background = QColor("#eeeeee")
         self._gutter_foreground = QColor("#666666")
+        self._placeholder_color = QColor("#666666")
+        self._placeholder_text = ""
 
         # Initialize search state.
         self._search_matches = []
@@ -263,11 +265,54 @@ class CodeEditor(QPlainTextEdit):
         self._current_line_background = QColor(color)
         self.highlight_current_line()
 
+    def setPlaceholderText(self, text):
+        """Store the empty-document placeholder text without duplicating Qt's native placeholder."""
+        self._placeholder_text = text
+        super().setPlaceholderText("")
+
+    def placeholderText(self):
+        """Return the custom placeholder text used by the editor."""
+        return self._placeholder_text
+
     def set_placeholder_color(self, color):
         """Apply the placeholder text color for the empty editor state."""
+        self._placeholder_color = QColor(color)
         palette = self.palette()
         palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(color))
         self.setPalette(palette)
+
+    def _placeholder_rect(self):
+        """Return the rectangle used to render the empty-document placeholder."""
+        cursor = QTextCursor(self.document())
+        cursor_rect = self.cursorRect(cursor)
+
+        document_margin = int(self.document().documentMargin())
+        left = self.contentsRect().left() + document_margin
+        top = cursor_rect.top()
+        width = max(0, self.viewport().width() - left)
+        height = max(cursor_rect.height(), self.fontMetrics().height())
+
+        return QRect(left, top, width, height)
+
+    def paintEvent(self, event):
+        """Render a single placeholder that scales with the editor font size."""
+        if self.document().isEmpty() and self._placeholder_text:
+            QPlainTextEdit.paintEvent(self, event)
+
+            painter = QPainter(self.viewport())
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setPen(self._placeholder_color)
+            painter.setFont(self.font())
+
+            painter.drawText(
+                self._placeholder_rect(),
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
+                self._placeholder_text,
+            )
+            painter.end()
+            return
+
+        super().paintEvent(event)
 
     def highlight_current_line(self):
         """Refresh the current line and search highlights"""
@@ -904,6 +949,7 @@ class CodeEditor(QPlainTextEdit):
         font.setPointSize(round(self._current_font_size))
 
         self.setFont(font)
+        self.document().setDefaultFont(font)
 
         # Synchronize the gutter font with the editor.
         self.line_number_area.update_font()

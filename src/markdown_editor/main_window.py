@@ -82,7 +82,6 @@ class MainWindow(QMainWindow):
         """Create the Markdown text editor"""
 
         self.editor = CodeEditor()
-        self.editor.setPlaceholderText("Out of words?")
 
         self.editor.set_font_size(
             self.settings_manager.get(
@@ -90,6 +89,8 @@ class MainWindow(QMainWindow):
                 value_type=int,
             )
         )
+
+        self.editor.setPlaceholderText("Out of words?")
 
         self.editor_label = QLabel("Editor")
         self.editor_label.setAlignment(Qt.AlignmentFlag.AlignCenter)

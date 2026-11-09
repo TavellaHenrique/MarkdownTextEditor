@@ -23,6 +23,45 @@ def test_empty_editor_does_not_activate_line_highlight(qtbot):
     assert editor.extraSelections() == []
 
 
+def test_editor_font_size_updates_document_default_font(qtbot):
+    """The document default font should scale with editor zoom levels."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    editor.set_font_size(18)
+
+    assert editor.font().pointSize() == 18
+    assert editor.document().defaultFont().pointSize() == 18
+
+
+def test_editor_placeholder_font_follows_editor_zoom(qtbot):
+    """The placeholder text should use the same font size as the editor."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    editor.setPlaceholderText("Out of words?")
+    editor.set_font_size(20)
+
+    assert editor.font().pointSize() == 20
+    assert editor.document().defaultFont().pointSize() == 20
+
+
+def test_editor_placeholder_starts_after_line_number_gutter(qtbot):
+    """The placeholder should align with the first text line and gutter offset."""
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+
+    editor.setPlaceholderText("Out of words?")
+    editor.update_line_number_area_width()
+
+    placeholder_rect = editor._placeholder_rect()
+    first_line_rect = editor.cursorRect(QTextCursor(editor.document()))
+
+    assert placeholder_rect.left() >= editor.line_number_area_width()
+    assert placeholder_rect.top() == first_line_rect.top()
+    assert placeholder_rect.height() >= first_line_rect.height()
+
+
 def test_editor_displays_text(qtbot):
     """Verify that the editor displays inserted text."""
     editor = CodeEditor()
