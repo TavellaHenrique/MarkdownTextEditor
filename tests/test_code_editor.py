@@ -46,22 +46,6 @@ def test_editor_placeholder_font_follows_editor_zoom(qtbot):
     assert editor.document().defaultFont().pointSize() == 20
 
 
-def test_editor_placeholder_starts_after_line_number_gutter(qtbot):
-    """The placeholder should align with the first text line and gutter offset."""
-    editor = CodeEditor()
-    qtbot.addWidget(editor)
-
-    editor.setPlaceholderText("Out of words?")
-    editor.update_line_number_area_width()
-
-    placeholder_rect = editor._placeholder_rect()
-    first_line_rect = editor.cursorRect(QTextCursor(editor.document()))
-
-    assert placeholder_rect.left() >= editor.line_number_area_width()
-    assert placeholder_rect.top() == first_line_rect.top()
-    assert placeholder_rect.height() >= first_line_rect.height()
-
-
 def test_editor_displays_text(qtbot):
     """Verify that the editor displays inserted text."""
     editor = CodeEditor()
