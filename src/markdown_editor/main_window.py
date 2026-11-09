@@ -92,6 +92,17 @@ class MainWindow(QMainWindow):
             )
         )
 
+        self.editor_label = QLabel("Editor")
+        self.editor_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.editor_label.setContentsMargins(8, 4, 8, 4)
+
+        self.editor_panel = QWidget()
+        editor_layout = QVBoxLayout(self.editor_panel)
+        editor_layout.setContentsMargins(0, 0, 0, 0)
+        editor_layout.setSpacing(0)
+        editor_layout.addWidget(self.editor_label)
+        editor_layout.addWidget(self.editor)
+
         # Send a signal when changes on the text are detected
         self.editor.textChanged.connect(self._update_preview)
 
@@ -143,6 +154,17 @@ class MainWindow(QMainWindow):
         self.preview = QTextBrowser()
         self.preview.setOpenExternalLinks(True)
 
+        self.preview_label = QLabel("Preview")
+        self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.preview_label.setContentsMargins(8, 4, 8, 4)
+
+        self.preview_panel = QWidget()
+        preview_layout = QVBoxLayout(self.preview_panel)
+        preview_layout.setContentsMargins(0, 0, 0, 0)
+        preview_layout.setSpacing(0)
+        preview_layout.addWidget(self.preview_label)
+        preview_layout.addWidget(self.preview)
+
         self.preview_controller = PreviewController(
             self.preview,
             self.theme_controller,
@@ -151,6 +173,17 @@ class MainWindow(QMainWindow):
     def _create_outline(self):
         """Create the document navigation panel."""
         self.outline = DocumentOutline()
+
+        self.outline_label = QLabel("Outline")
+        self.outline_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.outline_label.setContentsMargins(8, 4, 8, 4)
+
+        self.outline_panel = QWidget()
+        outline_layout = QVBoxLayout(self.outline_panel)
+        outline_layout.setContentsMargins(0, 0, 0, 0)
+        outline_layout.setSpacing(0)
+        outline_layout.addWidget(self.outline_label)
+        outline_layout.addWidget(self.outline)
 
         self.outline.heading_selected.connect(self._navigate_to_heading)
 
@@ -180,12 +213,12 @@ class MainWindow(QMainWindow):
     def _create_splitter(self):
         """Arrange the outline, editor, and preview panels."""
         self.editor_preview_splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.editor_preview_splitter.addWidget(self.editor)
-        self.editor_preview_splitter.addWidget(self.preview)
+        self.editor_preview_splitter.addWidget(self.editor_panel)
+        self.editor_preview_splitter.addWidget(self.preview_panel)
         self.editor_preview_splitter.setSizes([500, 500])
 
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.main_splitter.addWidget(self.outline)
+        self.main_splitter.addWidget(self.outline_panel)
         self.main_splitter.addWidget(self.editor_preview_splitter)
         self.main_splitter.setSizes([200, 800])
 
@@ -282,8 +315,8 @@ class MainWindow(QMainWindow):
             theme_names=self.theme_controller.available_themes,
             current_theme=self.theme_controller.current_theme_name,
             on_theme_changed=self._change_theme,
-            on_preview_toggled=self.preview.setVisible,
-            on_outline_toggled=self.outline.setVisible,
+            on_preview_toggled=self._toggle_preview_panel,
+            on_outline_toggled=self._toggle_outline_panel,
             format_actions=format_actions,
             heading_actions=heading_actions,
             list_actions=list_actions,
@@ -293,6 +326,18 @@ class MainWindow(QMainWindow):
             on_auto_save_interval_changed=self._set_auto_save_interval,
             auto_save_interval=self.auto_save_controller.interval,
         )
+
+    def _toggle_preview_panel(self, visible: bool):
+        """Toggle the preview panel and its title together."""
+        self.preview_panel.setVisible(visible)
+        self.preview_label.setVisible(visible)
+        self.preview.setVisible(visible)
+
+    def _toggle_outline_panel(self, visible: bool):
+        """Toggle the outline panel and its title together."""
+        self.outline_panel.setVisible(visible)
+        self.outline_label.setVisible(visible)
+        self.outline.setVisible(visible)
 
     def _restore_panel_visibility_settings(self):
         # Restore panel visibility settings.
@@ -306,9 +351,10 @@ class MainWindow(QMainWindow):
             value_type=bool,
         )
 
+        self._toggle_preview_panel(preview_visible)
+        self._toggle_outline_panel(outline_visible)
         self.menu_controller.preview_action.setChecked(preview_visible)
         self.menu_controller.outline_action.setChecked(outline_visible)
-        self.menu_controller.preview_action.setChecked(preview_visible)
 
     def _create_status_bar(self):
         """Create and configure the application status bar."""
@@ -369,10 +415,19 @@ class MainWindow(QMainWindow):
 
         # Apply theme colors to status information.
         status_text_color = theme.muted_foreground
+        panel_text_color = theme.foreground
 
         self.statistics_label.setStyleSheet(f"color: {status_text_color};")
-
         self.cursor_position_label.setStyleSheet(f"color: {status_text_color};")
+
+        for label in (
+            self.outline_label,
+            self.editor_label,
+            self.preview_label,
+        ):
+            label.setStyleSheet(
+                f"color: {panel_text_color}; background-color: transparent; text-align: center;"
+            )
 
         self.editor.set_line_number_colors(
             theme.gutter_background,
