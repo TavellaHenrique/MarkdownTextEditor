@@ -1,3 +1,4 @@
+import re
 from dataclasses import asdict, dataclass
 from importlib.resources import files
 from string import Template
@@ -20,6 +21,8 @@ class Theme:
     menu_background: str
     menu_selected: str
     muted_foreground: str
+    link: str
+    link_hover: str
     gutter_background: str
     gutter_foreground: str
     current_line_background: str
@@ -36,6 +39,8 @@ LIGHT_THEME = Theme(
     menu_background="#eeeeee",
     menu_selected="#dcdcdc",
     muted_foreground="#666666",
+    link="#2563eb",
+    link_hover="#1d4ed8",
     gutter_background="#eeeeee",
     gutter_foreground="#666666",
     current_line_background="#f1f5f9",
@@ -52,6 +57,8 @@ DARK_THEME = Theme(
     menu_background="#292a2d",
     menu_selected="#44464a",
     muted_foreground="#9aa0a6",
+    link="#8ab4f8",
+    link_hover="#d2e3fc",
     gutter_background="#292a2d",
     gutter_foreground="#9aa0a6",
     current_line_background="#283c57",
@@ -99,11 +106,16 @@ def build_preview_html(markdown_html: str, theme: Theme) -> str:
         "code-background": theme.code_background,
         "code-foreground": theme.code_foreground,
         "muted-foreground": theme.muted_foreground,
+        "link-color": theme.link,
+        "link-hover-color": theme.link_hover,
     }
+
+    for name, value in theme_variables.items():
+        preview_css = preview_css.replace(f"var(--{name})", value)
 
     css_variables = "\n".join(f"    --{name}: {value};" for name, value in theme_variables.items())
 
-    return f"""
+    preview_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
@@ -121,3 +133,16 @@ def build_preview_html(markdown_html: str, theme: Theme) -> str:
     </body>
     </html>
     """
+
+    anchor_style = (
+        f"color: {theme.link}; "
+        f"text-decoration: underline; "
+        f"text-decoration-color: {theme.link_hover};"
+    )
+
+    return re.sub(
+        r"<a\s+",
+        f'<a style="{anchor_style}" ',
+        preview_html,
+        count=1,
+    )

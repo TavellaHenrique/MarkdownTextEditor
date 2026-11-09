@@ -47,6 +47,40 @@ blockquote {
     color: var(--muted-foreground);
 }
 
+a
+a:link
+a:visited
+a:active
+a:hover {
+    position: relative;
+    color: var(--link-color) !important;
+    text-decoration: underline;
+    text-decoration-color: var(--link-hover-color);
+}
+
+a:hover {
+    color: var(--link-hover-color) !important;
+}
+
+a:hover::after,
+a[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 6px);
+    z-index: 10;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: var(--background);
+    color: var(--foreground);
+    border: 1px solid var(--muted-foreground);
+    white-space: nowrap;
+    font-size: 0.8em;
+    line-height: 1.4;
+    pointer-events: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
 img {
     max-width: 100%;
 }

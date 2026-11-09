@@ -1,14 +1,13 @@
 from pathlib import Path
 
 from PySide6.QtCore import QByteArray, QEvent, Qt
-from PySide6.QtGui import QTextCursor
+from PySide6.QtGui import QDesktopServices, QTextCursor
 from PySide6.QtWidgets import (
     QFileDialog,
     QLabel,
     QMainWindow,
     QMessageBox,
     QSplitter,
-    QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
@@ -21,7 +20,7 @@ from markdown_editor.document_statistics import calculate_document_statistics
 from markdown_editor.find_bar import FindBar
 from markdown_editor.markdown_parser import MarkdownParser
 from markdown_editor.menu_controller import MenuController
-from markdown_editor.preview_controller import PreviewController
+from markdown_editor.preview_controller import PreviewBrowser, PreviewController
 from markdown_editor.search_controller import SearchController
 from markdown_editor.settings_manager import SettingsManager
 from markdown_editor.theme_controller import ThemeController
@@ -151,8 +150,10 @@ class MainWindow(QMainWindow):
 
     def _create_preview(self):
         """Create the HTML preview."""
-        self.preview = QTextBrowser()
-        self.preview.setOpenExternalLinks(True)
+        self.preview = PreviewBrowser()
+        self.preview.setOpenLinks(False)
+        self.preview.setOpenExternalLinks(False)
+        self.preview.anchorClicked.connect(self._open_link)
 
         self.preview_label = QLabel("Preview")
         self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -169,6 +170,13 @@ class MainWindow(QMainWindow):
             self.preview,
             self.theme_controller,
         )
+
+    def _open_link(self, url):
+        """Open clicked preview links via the system browser without reloading the document."""
+        if not url.isValid():
+            return
+
+        QDesktopServices.openUrl(url)
 
     def _create_outline(self):
         """Create the document navigation panel."""
@@ -407,11 +415,26 @@ class MainWindow(QMainWindow):
 
         self.cursor_position_label.setText(f"Line: {line} | Column: {column}")
 
+    def _tooltip_style_for_theme(self, theme):
+        """Return the tooltip stylesheet for the active theme."""
+        return f"""
+        QToolTip {{
+            color: {theme.foreground};
+            background-color: {theme.background};
+            border: 1px solid {theme.border};
+            border-radius: 6px;
+            padding: 2px 4px;
+            font-size: 12px;
+        }}
+        """
+
     def _apply_theme(self):
         """Apply the currently selected application theme."""
         theme = self.theme_controller.current_theme
 
-        self.setStyleSheet(load_application_stylesheet(theme))
+        self.setStyleSheet(
+            load_application_stylesheet(theme) + self._tooltip_style_for_theme(theme)
+        )
 
         # Apply theme colors to status information.
         status_text_color = theme.muted_foreground

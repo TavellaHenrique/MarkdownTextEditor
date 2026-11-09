@@ -43,6 +43,20 @@ def test_render_preview_uses_current_theme(preview_controller):
     assert "Light Theme" in preview_html
 
 
+def test_render_preview_uses_theme_link_colors_and_hover_title(preview_controller):
+    """Apply the theme colors to links and expose the hover title in the preview."""
+    controller, _, theme_controller = preview_controller
+
+    theme_controller.set_theme("dark")
+
+    preview_html = controller.render_preview('[Docs](https://example.com "Example title")')
+
+    assert "#8ab4f8" in preview_html.lower()
+    assert "#d2e3fc" in preview_html.lower()
+    assert "example title" in preview_html.lower()
+    assert 'style="color:#8ab4f8' in preview_html.lower().replace(" ", "")
+
+
 def test_update_preview_refreshes_content(preview_controller):
     """Replace the previous preview content."""
     controller, preview, _ = preview_controller

@@ -1,5 +1,5 @@
 import pytest
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QSettings, QUrl
 from PySide6.QtWidgets import QMessageBox
 
 from markdown_editor.document_controller import DocumentController
@@ -79,6 +79,31 @@ def test_preview_updates_when_editor_text_changes(main_window):
 
     assert "<h1" in preview_html
     assert "Preview Test" in main_window.preview.toPlainText()
+
+
+def test_preview_clicks_open_links_without_reloading_document(main_window, monkeypatch):
+    """Verify that preview links are opened externally instead of reloading the QTextBrowser."""
+    opened_urls = []
+
+    monkeypatch.setattr(
+        "markdown_editor.main_window.QDesktopServices.openUrl",
+        lambda url: opened_urls.append(url),
+    )
+
+    main_window.preview.anchorClicked.emit(QUrl("https://example.com"))
+
+    assert opened_urls == [QUrl("https://example.com")]
+
+
+def test_tooltip_style_follows_active_theme(main_window):
+    """Ensure the tooltip uses colors from the active theme."""
+    main_window.theme_controller.set_theme("dark")
+    tooltip_style = main_window._tooltip_style_for_theme(main_window.theme_controller.current_theme)
+
+    assert "QToolTip" in tooltip_style
+    assert "color: #e8eaed" in tooltip_style
+    assert "background-color: #202124" in tooltip_style
+    assert "border: 1px solid #44464a" in tooltip_style
 
 
 def test_save_file_as_adds_markdown_extension(main_window, tmp_path, monkeypatch):
