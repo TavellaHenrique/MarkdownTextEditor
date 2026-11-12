@@ -29,6 +29,7 @@ class MenuController:
         auto_save_enabled: bool = True,
         on_auto_save_interval_changed: Callable[[int], None] | None = None,
         auto_save_interval: int = 60_000,
+        on_settings_requested: Callable[[], None] | None = None,
     ):
         """Initialize the menu controller."""
         self._menu_bar = menu_bar
@@ -37,6 +38,7 @@ class MenuController:
         self._preview_action: QAction | None = None
         self._outline_action: QAction | None = None
         self._auto_save_action: QAction | None = None
+        self._settings_action: QAction | None = None
 
         self._create_file_menu(
             file_actions,
@@ -60,6 +62,28 @@ class MenuController:
             on_preview_toggled,
             on_outline_toggled,
         )
+        self._create_settings_action(on_settings_requested)
+
+    @property
+    def settings_action(self) -> QAction:
+        """Return the application settings action."""
+        if self._settings_action is None:
+            raise RuntimeError("Settings action has not been initialized.")
+
+        return self._settings_action
+
+    def _create_settings_action(
+        self,
+        callback: Callable[[], None] | None,
+    ) -> None:
+        """Add the Settings action directly after the View menu."""
+        self._settings_action = QAction("Settings", self._parent)
+        self._settings_action.setToolTip("Open application settings")
+
+        if callback is not None:
+            self._settings_action.triggered.connect(callback)
+
+        self._menu_bar.addAction(self._settings_action)
 
     @property
     def theme_actions(self) -> dict[str, QAction]:

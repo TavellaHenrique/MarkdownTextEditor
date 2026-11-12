@@ -22,6 +22,7 @@ from markdown_editor.markdown_parser import MarkdownParser
 from markdown_editor.menu_controller import MenuController
 from markdown_editor.preview_controller import PreviewBrowser, PreviewController
 from markdown_editor.search_controller import SearchController
+from markdown_editor.settings_dialog import SettingsDialog
 from markdown_editor.settings_manager import SettingsManager
 from markdown_editor.theme_controller import ThemeController
 from markdown_editor.themes import (
@@ -334,7 +335,13 @@ class MainWindow(QMainWindow):
             auto_save_enabled=self.auto_save_controller.is_enabled,
             on_auto_save_interval_changed=self._set_auto_save_interval,
             auto_save_interval=self.auto_save_controller.interval,
+            on_settings_requested=self._show_settings_dialog,
         )
+
+    def _show_settings_dialog(self, _checked: bool = False) -> None:
+        """Open the application settings dialog."""
+        dialog = SettingsDialog(self.settings_manager, self)
+        dialog.exec()
 
     def _toggle_preview_panel(self, visible: bool):
         """Toggle the preview panel and its title together."""
