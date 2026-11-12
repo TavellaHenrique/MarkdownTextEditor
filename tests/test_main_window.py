@@ -1,11 +1,12 @@
 import pytest
 from PySide6.QtCore import QSettings, QUrl
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from markdown_editor.document_controller import DocumentController
 from markdown_editor.file_manager import FileManager
 from markdown_editor.main_window import MainWindow
 from markdown_editor.settings_manager import SettingsManager
+from markdown_editor.typography import APPLICATION_FONT_FAMILY, EDITOR_FONT_FAMILY
 
 
 @pytest.fixture
@@ -353,3 +354,9 @@ def test_document_outline_can_be_hidden(main_window):
     main_window.outline.setVisible(False)
 
     assert not main_window.outline.isVisible()
+
+
+def test_application_and_editor_use_jetbrains_mono(main_window):
+    """Use the bundled monospaced family throughout the application and editor."""
+    assert QApplication.instance().font().family() == APPLICATION_FONT_FAMILY
+    assert main_window.editor.font().family() == EDITOR_FONT_FAMILY

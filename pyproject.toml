@@ -22,13 +22,16 @@ dev = [
 [project.scripts]
 markdown-text-editor = "markdown_editor.main:main"
 
-[tools.setuptools.packages.find]
+[tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
 markdown_editor = [
     "styles/*.qss",
     "styles/*.css",
+    "fonts/*.ttf",
+    "fonts/*.otf",
+    "fonts/licenses/*.txt",
 ]
 
 [tool.pytest.ini_options]

@@ -66,3 +66,13 @@ def test_update_preview_refreshes_content(preview_controller):
 
     assert "Second Document" in preview.toPlainText()
     assert "First Document" not in preview.toPlainText()
+
+
+def test_preview_uses_inter_font_family(preview_controller):
+    """Use the bundled proportional font in the Markdown preview."""
+    controller, preview, _ = preview_controller
+
+    preview_html = controller.render_preview("# Typography")
+
+    assert preview.font().family() == "Inter"
+    assert '"Inter", sans-serif' in preview_html

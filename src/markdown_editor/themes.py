@@ -6,6 +6,7 @@ from string import Template
 from markdown_editor.typography import (
     PREVIEW_FONT_FAMILY,
     PREVIEW_FONT_SIZE,
+    load_bundled_fonts,
 )
 
 
@@ -96,10 +97,11 @@ def load_preview_css() -> str:
 
 def build_preview_html(markdown_html: str, theme: Theme) -> str:
     """Build the Markdown preview using the selected theme."""
+    load_bundled_fonts()
     preview_css = load_preview_css()
 
     theme_variables = {
-        "font-family": PREVIEW_FONT_FAMILY,
+        "font-family": f'"{PREVIEW_FONT_FAMILY}", sans-serif',
         "font-size": f"{PREVIEW_FONT_SIZE}px",
         "background": theme.background,
         "foreground": theme.foreground,

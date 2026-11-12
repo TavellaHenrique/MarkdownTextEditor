@@ -3,6 +3,7 @@ from pathlib import Path
 from PySide6.QtCore import QByteArray, QEvent, Qt
 from PySide6.QtGui import QDesktopServices, QTextCursor
 from PySide6.QtWidgets import (
+    QApplication,
     QFileDialog,
     QLabel,
     QMainWindow,
@@ -25,9 +26,8 @@ from markdown_editor.search_controller import SearchController
 from markdown_editor.settings_dialog import SettingsDialog
 from markdown_editor.settings_manager import SettingsManager
 from markdown_editor.theme_controller import ThemeController
-from markdown_editor.themes import (
-    load_application_stylesheet,
-)
+from markdown_editor.themes import load_application_stylesheet
+from markdown_editor.typography import create_application_font
 from markdown_editor.window_controller import WindowController
 
 
@@ -43,6 +43,9 @@ class MainWindow(QMainWindow):
         settings_manager: SettingsManager | None = None,
     ):
         super().__init__()
+
+        # Apply the bundled application font before creating child widgets.
+        QApplication.instance().setFont(create_application_font())
 
         self.settings_manager = (
             settings_manager if settings_manager is not None else SettingsManager()

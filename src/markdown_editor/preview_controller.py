@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QTextBrowser, QToolTip
 from markdown_editor.markdown_parser import MarkdownParser
 from markdown_editor.theme_controller import ThemeController
 from markdown_editor.themes import build_preview_html
+from markdown_editor.typography import create_preview_font
 
 
 class PreviewBrowser(QTextBrowser):
@@ -68,6 +69,7 @@ class PreviewController:
     ):
         """Initialize preview dependencies."""
         self._preview = preview
+        self._preview.setFont(create_preview_font())
         self._theme_controller = theme_controller
         self._parser = parser or MarkdownParser()
 
