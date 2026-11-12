@@ -95,13 +95,17 @@ def load_preview_css() -> str:
     return _read_style_file("preview.css")
 
 
-def build_preview_html(markdown_html: str, theme: Theme) -> str:
+def build_preview_html(
+    markdown_html: str,
+    theme: Theme,
+    font_family: str = PREVIEW_FONT_FAMILY,
+) -> str:
     """Build the Markdown preview using the selected theme."""
     load_bundled_fonts()
     preview_css = load_preview_css()
 
     theme_variables = {
-        "font-family": f'"{PREVIEW_FONT_FAMILY}", sans-serif',
+        "font-family": f'"{font_family}", sans-serif',
         "font-size": f"{PREVIEW_FONT_SIZE}px",
         "background": theme.background,
         "foreground": theme.foreground,

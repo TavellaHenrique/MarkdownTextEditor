@@ -51,31 +51,31 @@ def load_bundled_fonts() -> dict[str, str]:
     return loaded_families
 
 
-def create_application_font() -> QFont:
-    """Create the default application font."""
+def create_application_font(family: str = APPLICATION_FONT_FAMILY) -> QFont:
+    """Create the application font using the selected family."""
     load_bundled_fonts()
 
-    font = QFont(APPLICATION_FONT_FAMILY)
+    font = QFont(family)
     font.setPointSize(APPLICATION_FONT_SIZE)
 
     return font
 
 
-def create_editor_font() -> QFont:
-    """Create the default monospaced editor font."""
+def create_editor_font(family: str = EDITOR_FONT_FAMILY) -> QFont:
+    """Create the editor font using the selected family."""
     load_bundled_fonts()
 
-    font = QFont(EDITOR_FONT_FAMILY)
+    font = QFont(family)
     font.setPointSize(EDITOR_DEFAULT_FONT_SIZE)
 
     return font
 
 
-def create_preview_font() -> QFont:
-    """Create the default proportional preview font."""
+def create_preview_font(family: str = PREVIEW_FONT_FAMILY) -> QFont:
+    """Create the preview font using the selected family."""
     load_bundled_fonts()
 
-    font = QFont(PREVIEW_FONT_FAMILY)
+    font = QFont(family)
     font.setPointSize(PREVIEW_FONT_SIZE)
 
     return font

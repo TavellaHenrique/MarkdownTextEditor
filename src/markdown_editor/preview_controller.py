@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QTextBrowser, QToolTip
 from markdown_editor.markdown_parser import MarkdownParser
 from markdown_editor.theme_controller import ThemeController
 from markdown_editor.themes import build_preview_html
-from markdown_editor.typography import create_preview_font
+from markdown_editor.typography import PREVIEW_FONT_FAMILY, create_preview_font
 
 
 class PreviewBrowser(QTextBrowser):
@@ -66,10 +66,12 @@ class PreviewController:
         preview: QTextBrowser,
         theme_controller: ThemeController,
         parser: MarkdownParser | None = None,
+        font_family: str = PREVIEW_FONT_FAMILY,
     ):
         """Initialize preview dependencies."""
         self._preview = preview
-        self._preview.setFont(create_preview_font())
+        self._font_family = font_family
+        self._preview.setFont(create_preview_font(font_family))
         self._theme_controller = theme_controller
         self._parser = parser or MarkdownParser()
 
@@ -78,7 +80,12 @@ class PreviewController:
         markdown_html = self._parser.to_html(markdown_text)
         theme = self._theme_controller.current_theme
 
-        return build_preview_html(markdown_html, theme)
+        return build_preview_html(markdown_html, theme, self._font_family)
+
+    def set_font_family(self, family: str) -> None:
+        """Change the preview font and refresh its current document."""
+        self._font_family = family
+        self._preview.setFont(create_preview_font(family))
 
     def update_preview(self, markdown_text: str) -> None:
         """Update the preview while preserving scroll positions."""

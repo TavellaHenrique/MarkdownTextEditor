@@ -360,3 +360,29 @@ def test_application_and_editor_use_jetbrains_mono(main_window):
     """Use the bundled monospaced family throughout the application and editor."""
     assert QApplication.instance().font().family() == APPLICATION_FONT_FAMILY
     assert main_window.editor.font().family() == EDITOR_FONT_FAMILY
+
+
+def test_main_window_restores_typography_preferences(qtbot, settings_manager):
+    """Restore saved font families for the application, editor, and preview."""
+    settings_manager.set("typography/application_font", "Inter")
+    settings_manager.set("typography/editor_font", "Inter")
+    settings_manager.set("typography/preview_font", "JetBrains Mono")
+
+    window = MainWindow(settings_manager=settings_manager)
+    qtbot.addWidget(window)
+
+    assert QApplication.font().family() == "Inter"
+    assert window.editor.font().family() == "Inter"
+    assert window.preview.font().family() == "JetBrains Mono"
+    assert '"JetBrains Mono", sans-serif' in window.preview_controller.render_preview(
+        "# Typography"
+    )
+
+
+def test_main_window_applies_typography_changes(main_window):
+    """Apply changed font families to all application text areas."""
+    main_window._apply_typography("Inter", "Inter", "JetBrains Mono")
+
+    assert QApplication.font().family() == "Inter"
+    assert main_window.editor.font().family() == "Inter"
+    assert main_window.preview.font().family() == "JetBrains Mono"

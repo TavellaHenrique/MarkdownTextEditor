@@ -16,6 +16,10 @@ class SettingsManager:
         "outline/visible": True,
         "autosave/enabled": True,
         "autosave/interval": 60_000,
+        "typography/application_font": "JetBrains Mono",
+        "typography/editor_font": "JetBrains Mono",
+        "typography/preview_font": "Inter",
+        "typography/imported_fonts": [],
     }
 
     def __init__(self, settings: QSettings | None = None) -> None:

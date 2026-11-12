@@ -19,6 +19,7 @@ from markdown_editor.document_controller import DocumentController
 from markdown_editor.document_outline import DocumentOutline
 from markdown_editor.document_statistics import calculate_document_statistics
 from markdown_editor.find_bar import FindBar
+from markdown_editor.font_manager import FontManager
 from markdown_editor.markdown_parser import MarkdownParser
 from markdown_editor.menu_controller import MenuController
 from markdown_editor.preview_controller import PreviewBrowser, PreviewController
@@ -44,12 +45,24 @@ class MainWindow(QMainWindow):
     ):
         super().__init__()
 
-        # Apply the bundled application font before creating child widgets.
-        QApplication.instance().setFont(create_application_font())
-
         self.settings_manager = (
             settings_manager if settings_manager is not None else SettingsManager()
         )
+        application = QApplication.instance()
+        application.setOrganizationName(SettingsManager.ORGANIZATION_NAME)
+        application.setApplicationName(SettingsManager.APPLICATION_NAME)
+
+        self.font_manager = FontManager(self.settings_manager)
+        available_fonts = self.font_manager.available_families()
+        self._application_font_family = self._get_font_preference(
+            "application",
+            available_fonts,
+        )
+        self._editor_font_family = self._get_font_preference("editor", available_fonts)
+        self._preview_font_family = self._get_font_preference("preview", available_fonts)
+
+        # Apply the selected application font before creating child widgets.
+        QApplication.instance().setFont(create_application_font(self._application_font_family))
 
         self.document_controller = DocumentController()
         self.markdown_parser = MarkdownParser()
@@ -86,6 +99,7 @@ class MainWindow(QMainWindow):
         """Create the Markdown text editor"""
 
         self.editor = CodeEditor()
+        self.editor.set_font_family(self._editor_font_family)
 
         self.editor.set_font_size(
             self.settings_manager.get(
@@ -174,6 +188,7 @@ class MainWindow(QMainWindow):
         self.preview_controller = PreviewController(
             self.preview,
             self.theme_controller,
+            font_family=self._preview_font_family,
         )
 
     def _open_link(self, url):
@@ -343,8 +358,43 @@ class MainWindow(QMainWindow):
 
     def _show_settings_dialog(self, _checked: bool = False) -> None:
         """Open the application settings dialog."""
-        dialog = SettingsDialog(self.settings_manager, self)
+        dialog = SettingsDialog(
+            self.settings_manager,
+            self,
+            font_manager=self.font_manager,
+        )
+        dialog.typography_changed.connect(self._apply_typography)
         dialog.exec()
+
+    def _get_font_preference(self, key: str, available_fonts: list[str]) -> str:
+        """Return a valid saved font family or the corresponding bundled default."""
+        defaults = {
+            "application": "JetBrains Mono",
+            "editor": "JetBrains Mono",
+            "preview": "Inter",
+        }
+        saved_family = self.settings_manager.get(
+            f"typography/{key}_font",
+            defaults[key],
+            str,
+        )
+        return saved_family if saved_family in available_fonts else defaults[key]
+
+    def _apply_typography(
+        self,
+        application_family: str,
+        editor_family: str,
+        preview_family: str,
+    ) -> None:
+        """Apply font family changes to the application, editor, and preview."""
+        self._application_font_family = application_family
+        self._editor_font_family = editor_family
+        self._preview_font_family = preview_family
+
+        QApplication.instance().setFont(create_application_font(application_family))
+        self.editor.set_font_family(editor_family)
+        self.preview_controller.set_font_family(preview_family)
+        self._update_preview()
 
     def _toggle_preview_panel(self, visible: bool):
         """Toggle the preview panel and its title together."""

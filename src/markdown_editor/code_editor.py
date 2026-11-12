@@ -918,6 +918,16 @@ class CodeEditor(QPlainTextEdit):
 
         self._set_font_size(size)
 
+    def set_font_family(self, family: str) -> None:
+        """Change the editor font family while preserving its current size."""
+        font = self.font()
+        font.setFamily(family)
+        self.setFont(font)
+        self.document().setDefaultFont(font)
+        self.line_number_area.update_font()
+        self.update_line_number_area_width()
+        self.line_number_area.update()
+
     def increase_font_size(self):
         """Increase the editor font size."""
         new_size = min(
