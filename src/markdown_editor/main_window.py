@@ -724,7 +724,18 @@ class MainWindow(QMainWindow):
         )
 
     def _new_file(self, _checked=False):
-        """Create a new empty document."""
+        """Create a new empty document after user confirmation."""
+        answer = QMessageBox.question(
+            self,
+            "New Document",
+            "Are you sure you want to create a new document?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
         if not self.window_controller.confirm_save_changes():
             return
 
