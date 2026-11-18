@@ -386,3 +386,45 @@ def test_main_window_applies_typography_changes(main_window):
     assert QApplication.font().family() == "Inter"
     assert main_window.editor.font().family() == "Inter"
     assert main_window.preview.font().family() == "JetBrains Mono"
+
+
+def test_new_file_clears_editor_and_resets_document(main_window, tmp_path):
+    """Create a new empty document and reset its state."""
+    file_path = tmp_path / "existing.md"
+    main_window.document_controller.save_document(file_path, "# Existing")
+    main_window.editor.setPlainText("# Existing")
+    main_window.editor.document().setModified(False)
+
+    main_window._new_file()
+
+    assert main_window.editor.toPlainText() == ""
+    assert main_window.document_controller.current_file_path is None
+    assert main_window.editor.document().isModified() is False
+    assert main_window.windowTitle() == "Untitled - Markdown Text Editor"
+
+
+def test_new_file_cancel_preserves_current_document(main_window, monkeypatch):
+    """Preserve the current document when the user cancels."""
+    main_window.editor.setPlainText("Unsaved content")
+    main_window.editor.document().setModified(True)
+
+    monkeypatch.setattr(
+        "markdown_editor.main_window.QMessageBox.warning",
+        lambda *args: QMessageBox.StandardButton.Cancel,
+    )
+
+    main_window._new_file()
+
+    assert main_window.editor.toPlainText() == "Unsaved content"
+    assert main_window.editor.document().isModified()
+
+
+def test_new_action_exists_with_correct_shortcut(main_window):
+    """Verify that the New action exists with its keyboard shortcut."""
+    file_menu = next(
+        action.menu() for action in main_window.menuBar().actions() if action.text() == "File"
+    )
+
+    new_action = next(action for action in file_menu.actions() if action.text() == "New")
+
+    assert new_action.shortcut().toString() == "Ctrl+N"
