@@ -388,12 +388,18 @@ def test_main_window_applies_typography_changes(main_window):
     assert main_window.preview.font().family() == "JetBrains Mono"
 
 
-def test_new_file_clears_editor_and_resets_document(main_window, tmp_path):
-    """Create a new empty document and reset its state."""
+def test_new_file_creates_empty_document(main_window, tmp_path, monkeypatch):
+    """Create a new document after explicit user confirmation."""
     file_path = tmp_path / "existing.md"
+
     main_window.document_controller.save_document(file_path, "# Existing")
     main_window.editor.setPlainText("# Existing")
     main_window.editor.document().setModified(False)
+
+    monkeypatch.setattr(
+        "markdown_editor.main_window.QMessageBox.question",
+        lambda *args: QMessageBox.StandardButton.Yes,
+    )
 
     main_window._new_file()
 
@@ -403,24 +409,116 @@ def test_new_file_clears_editor_and_resets_document(main_window, tmp_path):
     assert main_window.windowTitle() == "Untitled - Markdown Text Editor"
 
 
-def test_new_file_cancel_preserves_current_document(main_window, monkeypatch):
-    """Preserve the current document when the user cancels."""
-    main_window.editor.setPlainText("Unsaved content")
-    main_window.editor.document().setModified(True)
+def test_new_file_confirmation_cancel_preserves_document(
+    main_window,
+    tmp_path,
+    monkeypatch,
+):
+    """Preserve the current document when creation is declined."""
+    file_path = tmp_path / "existing.md"
+    content = "# Existing document"
+
+    main_window.document_controller.save_document(file_path, content)
+    main_window.editor.setPlainText(content)
+    main_window.editor.document().setModified(False)
 
     monkeypatch.setattr(
-        "markdown_editor.main_window.QMessageBox.warning",
-        lambda *args: QMessageBox.StandardButton.Cancel,
+        "markdown_editor.main_window.QMessageBox.question",
+        lambda *args: QMessageBox.StandardButton.No,
     )
 
     main_window._new_file()
 
-    assert main_window.editor.toPlainText() == "Unsaved content"
-    assert main_window.editor.document().isModified()
+    assert main_window.editor.toPlainText() == content
+    assert main_window.document_controller.current_file_path == file_path
+    assert main_window.editor.document().isModified() is False
+
+
+def test_new_file_requires_confirmation_when_document_is_unmodified(
+    main_window,
+    monkeypatch,
+):
+    """Require confirmation even when the current document is unmodified."""
+    main_window.editor.setPlainText("Saved content")
+    main_window.editor.document().setModified(False)
+
+    confirmation_calls = []
+
+    def confirm_creation(*args):
+        confirmation_calls.append(args)
+        return QMessageBox.StandardButton.No
+
+    monkeypatch.setattr(
+        "markdown_editor.main_window.QMessageBox.question",
+        confirm_creation,
+    )
+
+    main_window._new_file()
+
+    assert len(confirmation_calls) == 1
+    assert main_window.editor.toPlainText() == "Saved content"
+    assert main_window.editor.document().isModified() is False
+
+
+def test_new_file_discards_changes_after_confirmation(
+    main_window,
+    monkeypatch,
+):
+    """Discard unsaved changes after both confirmations."""
+    main_window.editor.setPlainText("Unsaved content")
+    main_window.editor.document().setModified(True)
+
+    monkeypatch.setattr(
+        "markdown_editor.main_window.QMessageBox.question",
+        lambda *args: QMessageBox.StandardButton.Yes,
+    )
+
+    monkeypatch.setattr(
+        "markdown_editor.main_window.QMessageBox.warning",
+        lambda *args: QMessageBox.StandardButton.Discard,
+    )
+
+    main_window._new_file()
+
+    assert main_window.editor.toPlainText() == ""
+    assert main_window.editor.document().isModified() is False
+    assert main_window.document_controller.current_file_path is None
+
+
+def test_new_file_preserves_document_when_save_dialog_is_cancelled(
+    main_window,
+    monkeypatch,
+):
+    """Preserve the document when saving is cancelled during creation."""
+    content = "Unsaved content"
+
+    main_window.editor.setPlainText(content)
+    main_window.editor.document().setModified(True)
+
+    monkeypatch.setattr(
+        "markdown_editor.main_window.QMessageBox.question",
+        lambda *args: QMessageBox.StandardButton.Yes,
+    )
+
+    monkeypatch.setattr(
+        "markdown_editor.main_window.QMessageBox.warning",
+        lambda *args: QMessageBox.StandardButton.Save,
+    )
+
+    monkeypatch.setattr(
+        "markdown_editor.main_window.QFileDialog.getSaveFileName",
+        lambda *args: ("", ""),
+    )
+
+    main_window._new_file()
+
+    assert main_window.editor.toPlainText() == content
+    assert main_window.document_controller.current_file_path is None
+    assert main_window.editor.document().isModified() is True
 
 
 def test_new_action_exists_with_correct_shortcut(main_window):
-    """Verify that the New action exists with its keyboard shortcut."""
+    """Verify that the New action exists with the correct shortcut."""
     file_menu = next(
         action.menu() for action in main_window.menuBar().actions() if action.text() == "File"
     )
