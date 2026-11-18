@@ -90,3 +90,13 @@ def test_save_document_preserves_path_on_failure(controller, tmp_path, monkeypat
         controller.save_document(new_path, "New content")
 
     assert controller.current_file_path == original_path
+
+
+def test_new_document_resets_current_file_path(controller, tmp_path):
+    """Reset the current path when creating a new document."""
+    file_path = tmp_path / "document.md"
+    controller.save_document(file_path, "# Existing document")
+
+    controller.new_document()
+
+    assert controller.current_file_path is None
