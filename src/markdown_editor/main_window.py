@@ -284,6 +284,7 @@ class MainWindow(QMainWindow):
     def _create_menu_controller(self):
         """Initialize the menu controller."""
         file_actions = [
+            ("New", "Ctrl+N", self._new_file),
             ("Open", "Ctrl+O", self._open_file),
             ("Save", "Ctrl+S", self._save_file),
             ("Save As", "Ctrl+Shift+S", self._save_file_as),
@@ -721,6 +722,18 @@ class MainWindow(QMainWindow):
             f"Opened: {file_path}",
             3000,
         )
+
+    def _new_file(self, _checked=False):
+        """Create a new empty document."""
+        if not self.window_controller.confirm_save_changes():
+            return
+
+        self.document_controller.new_document()
+        self.editor.clear()
+        self.editor.document().setModified(False)
+
+        self.window_controller.update_window_title()
+        self.statusBar().showMessage("New document", self.MESSAGE_TIMEOUT)
 
     def _save_file(self) -> bool:
         """Save the current document."""

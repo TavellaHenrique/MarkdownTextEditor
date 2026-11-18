@@ -33,6 +33,10 @@ class DocumentController:
 
         return content
 
+    def new_document(self) -> None:
+        """Reset the current document path for a new document."""
+        self._current_file_path = None
+
     def save_document(self, file_path: Path, content: str) -> None:
         """Save document content and update its current path."""
         self._file_manager.save_file(file_path, content)
