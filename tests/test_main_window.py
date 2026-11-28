@@ -610,3 +610,92 @@ def test_file_menu_keeps_document_actions(main_window):
     assert "Open" in action_texts
     assert "Save" in action_texts
     assert "Save As" in action_texts
+
+
+def test_main_window_restores_default_editor_font_size(
+    qtbot,
+    settings_manager,
+):
+    """Restore the configured default editor font size."""
+    settings_manager.set("editor/font_size", 18)
+
+    window = MainWindow(settings_manager=settings_manager)
+    qtbot.addWidget(window)
+
+    assert window.editor_default_font_size == 18
+    assert window.editor.font_size == 18
+
+
+def test_default_editor_font_size_updates_and_persists(main_window):
+    """Update the default editor font size and persist it."""
+    main_window._set_editor_default_font_size(20)
+
+    assert main_window.editor_default_font_size == 20
+    assert main_window.editor.font_size == 20
+    assert (
+        main_window.settings_manager.get(
+            "editor/font_size",
+            value_type=int,
+        )
+        == 20
+    )
+
+
+def test_reset_editor_font_size_uses_configured_default(main_window):
+    """Reset the editor zoom to its configured default."""
+    main_window._set_editor_default_font_size(18)
+    main_window.editor.increase_font_size()
+
+    assert main_window.editor.font_size > 18
+
+    main_window._reset_editor_font_size()
+
+    assert main_window.editor.font_size == 18
+
+
+def test_editor_zoom_does_not_overwrite_default_font_size(main_window):
+    """Keep the configured default when saving after a zoom adjustment."""
+    main_window._set_editor_default_font_size(18)
+    main_window.editor.increase_font_size()
+
+    main_window._save_settings()
+
+    assert (
+        main_window.settings_manager.get(
+            "editor/font_size",
+            value_type=int,
+        )
+        == 18
+    )
+
+
+def test_settings_dialog_editor_font_size_updates_main_window(
+    main_window,
+    monkeypatch,
+):
+    """Connect editor font size settings to the main window."""
+    from markdown_editor.settings_dialog import SettingsDialog
+
+    captured_dialog = None
+
+    def fake_exec(dialog):
+        nonlocal captured_dialog
+        captured_dialog = dialog
+
+    monkeypatch.setattr(SettingsDialog, "exec", fake_exec)
+
+    main_window._show_settings_dialog()
+
+    assert captured_dialog is not None
+
+    captured_dialog.editor_font_size_spinbox.setValue(19)
+
+    assert main_window.editor_default_font_size == 19
+    assert main_window.editor.font_size == 19
+    assert (
+        main_window.settings_manager.get(
+            "editor/font_size",
+            value_type=int,
+        )
+        == 19
+    )

@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QMessageBox,
     QPushButton,
+    QSpinBox,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -20,7 +21,10 @@ from markdown_editor.font_manager import FontManager
 from markdown_editor.settings_manager import SettingsManager
 from markdown_editor.typography import (
     APPLICATION_FONT_FAMILY,
+    EDITOR_DEFAULT_FONT_SIZE,
     EDITOR_FONT_FAMILY,
+    EDITOR_MAX_FONT_SIZE,
+    EDITOR_MIN_FONT_SIZE,
     PREVIEW_FONT_FAMILY,
 )
 
@@ -33,6 +37,8 @@ class SettingsDialog(QDialog):
 
     auto_save_enabled_changed = Signal(bool)
     auto_save_interval_changed = Signal(int)
+
+    editor_default_font_size_changed = Signal(int)
 
     SECTIONS = (
         ("Appearance", "Configure the application's visual appearance."),
@@ -86,6 +92,8 @@ class SettingsDialog(QDialog):
         self.auto_save_checkbox: QCheckBox | None = None
         self.auto_save_interval_combo: QComboBox | None = None
 
+        self.editor_font_size_spinbox: QSpinBox | None = None
+
         self.theme_names = theme_names
         self.current_theme = current_theme
         self.theme_combo: QComboBox | None = None
@@ -95,10 +103,13 @@ class SettingsDialog(QDialog):
 
         for title, description in self.SECTIONS:
             self.category_list.addItem(title)
+
             if title == "Appearance":
                 page = self._create_appearance_page(description)
             elif title == "Typography":
                 page = self._create_typography_page(description)
+            elif title == "Editor":
+                page = self._create_editor_page(description)
             elif title == "Files & Saving":
                 page = self._create_files_saving_page(description)
             else:
@@ -213,6 +224,50 @@ class SettingsDialog(QDialog):
 
         form_layout.addRow(self.auto_save_checkbox)
         form_layout.addRow("Interval", self.auto_save_interval_combo)
+
+        layout.addWidget(title_label)
+        layout.addWidget(description_label)
+        layout.addSpacing(16)
+        layout.addLayout(form_layout)
+        layout.addStretch(1)
+
+        return page
+
+    def _create_editor_page(self, description: str) -> QWidget:
+        """Create controls for editor preferences."""
+        page = QWidget(self.pages)
+        layout = QVBoxLayout(page)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        title_label = QLabel("Editor", page)
+        title_label.setObjectName("settings_section_title")
+
+        description_label = QLabel(description, page)
+        description_label.setWordWrap(True)
+
+        form_layout = QFormLayout()
+
+        self.editor_font_size_spinbox = QSpinBox(page)
+        self.editor_font_size_spinbox.setObjectName("editor_font_size_spinbox")
+        self.editor_font_size_spinbox.setRange(
+            EDITOR_MIN_FONT_SIZE,
+            EDITOR_MAX_FONT_SIZE,
+        )
+        self.editor_font_size_spinbox.setSingleStep(1)
+
+        saved_font_size = self.settings_manager.get(
+            "editor/font_size",
+            EDITOR_DEFAULT_FONT_SIZE,
+            int,
+        )
+
+        self.editor_font_size_spinbox.setValue(saved_font_size)
+
+        self.editor_font_size_spinbox.valueChanged.connect(
+            self.editor_default_font_size_changed.emit
+        )
+
+        form_layout.addRow("Default font size", self.editor_font_size_spinbox)
 
         layout.addWidget(title_label)
         layout.addWidget(description_label)

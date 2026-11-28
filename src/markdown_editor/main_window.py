@@ -28,7 +28,7 @@ from markdown_editor.settings_dialog import SettingsDialog
 from markdown_editor.settings_manager import SettingsManager
 from markdown_editor.theme_controller import ThemeController
 from markdown_editor.themes import load_application_stylesheet
-from markdown_editor.typography import create_application_font
+from markdown_editor.typography import EDITOR_DEFAULT_FONT_SIZE, create_application_font
 from markdown_editor.window_controller import WindowController
 
 
@@ -107,6 +107,14 @@ class MainWindow(QMainWindow):
                 value_type=int,
             )
         )
+
+        self.editor_default_font_size = self.settings_manager.get(
+            "editor/font_size",
+            EDITOR_DEFAULT_FONT_SIZE,
+            int,
+        )
+
+        self.editor.set_font_size(self.editor_default_font_size)
 
         self.editor.setPlaceholderText("Out of words?")
 
@@ -303,7 +311,7 @@ class MainWindow(QMainWindow):
         view_actions = [
             ("Increase Font Size", "Ctrl+=", self.editor.increase_font_size),
             ("Decrease Font Size", "Ctrl+-", self.editor.decrease_font_size),
-            ("Reset Font Size", "Ctrl+0", self.editor.reset_font_size),
+            ("Reset Font Size", "Ctrl+0", self._reset_editor_font_size),
         ]
 
         format_actions = [
@@ -350,6 +358,10 @@ class MainWindow(QMainWindow):
             on_settings_requested=self._show_settings_dialog,
         )
 
+    def _reset_editor_font_size(self) -> None:
+        """Reset the editor font size to the configured default."""
+        self.editor.set_font_size(self.editor_default_font_size)
+
     def _show_settings_dialog(self, _checked: bool = False) -> None:
         """Open the application settings dialog."""
         dialog = SettingsDialog(
@@ -365,6 +377,8 @@ class MainWindow(QMainWindow):
 
         dialog.auto_save_enabled_changed.connect(self._set_auto_save_enabled)
         dialog.auto_save_interval_changed.connect(self._set_auto_save_interval)
+
+        dialog.editor_default_font_size_changed.connect(self._set_editor_default_font_size)
 
         dialog.exec()
 
@@ -397,6 +411,14 @@ class MainWindow(QMainWindow):
         self.editor.set_font_family(editor_family)
         self.preview_controller.set_font_family(preview_family)
         self._update_preview()
+
+    def _set_editor_default_font_size(self, size: int) -> None:
+        """Update and persist the default editor font size."""
+        self.editor_default_font_size = size
+        self.editor.set_font_size(size)
+
+        self.settings_manager.set("editor/font_size", size)
+        self.settings_manager.sync()
 
     def _toggle_preview_panel(self, visible: bool):
         """Toggle the preview panel and its title together."""
@@ -650,7 +672,7 @@ class MainWindow(QMainWindow):
 
         self.settings_manager.set(
             "editor/font_size",
-            self.editor.font_size,
+            self.editor_default_font_size,
         )
 
         self.settings_manager.set(

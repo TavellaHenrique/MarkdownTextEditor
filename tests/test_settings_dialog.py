@@ -1,12 +1,15 @@
 from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QComboBox
+from PySide6.QtWidgets import QComboBox, QSpinBox
 
 from markdown_editor.font_manager import FontManager
 from markdown_editor.settings_dialog import SettingsDialog
 from markdown_editor.settings_manager import SettingsManager
 from markdown_editor.typography import (
     APPLICATION_FONT_FAMILY,
+    EDITOR_DEFAULT_FONT_SIZE,
     EDITOR_FONT_FAMILY,
+    EDITOR_MAX_FONT_SIZE,
+    EDITOR_MIN_FONT_SIZE,
     PREVIEW_FONT_FAMILY,
 )
 
@@ -130,3 +133,41 @@ def test_auto_save_interval_changed_signal(qtbot, tmp_path):
         dialog.auto_save_interval_combo.setCurrentIndex(index)
 
     assert signal.args == [30_000]
+
+
+def test_editor_page_exposes_default_font_size_control(qtbot, tmp_path):
+    """Expose the default editor font size control."""
+    settings = _create_settings_manager(tmp_path)
+    manager = FontManager(settings, tmp_path / "fonts")
+    dialog = SettingsDialog(settings, font_manager=manager)
+    qtbot.addWidget(dialog)
+
+    assert isinstance(dialog.editor_font_size_spinbox, QSpinBox)
+    assert dialog.editor_font_size_spinbox.value() == EDITOR_DEFAULT_FONT_SIZE
+    assert dialog.editor_font_size_spinbox.minimum() == EDITOR_MIN_FONT_SIZE
+    assert dialog.editor_font_size_spinbox.maximum() == EDITOR_MAX_FONT_SIZE
+
+
+def test_editor_page_loads_saved_font_size(qtbot, tmp_path):
+    """Load the saved default editor font size."""
+    settings = _create_settings_manager(tmp_path)
+    settings.set("editor/font_size", 18)
+
+    manager = FontManager(settings, tmp_path / "fonts")
+    dialog = SettingsDialog(settings, font_manager=manager)
+    qtbot.addWidget(dialog)
+
+    assert dialog.editor_font_size_spinbox.value() == 18
+
+
+def test_editor_font_size_changed_signal(qtbot, tmp_path):
+    """Emit the new default editor font size."""
+    settings = _create_settings_manager(tmp_path)
+    manager = FontManager(settings, tmp_path / "fonts")
+    dialog = SettingsDialog(settings, font_manager=manager)
+    qtbot.addWidget(dialog)
+
+    with qtbot.waitSignal(dialog.editor_default_font_size_changed) as signal:
+        dialog.editor_font_size_spinbox.setValue(dialog.editor_font_size_spinbox.value() + 1)
+
+    assert signal.args == [dialog.editor_font_size_spinbox.value()]
