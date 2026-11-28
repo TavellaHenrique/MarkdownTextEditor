@@ -1,5 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -30,6 +31,9 @@ class SettingsDialog(QDialog):
     theme_changed = Signal(str)
     typography_changed = Signal(str, str, str)
 
+    auto_save_enabled_changed = Signal(bool)
+    auto_save_interval_changed = Signal(int)
+
     SECTIONS = (
         ("Appearance", "Configure the application's visual appearance."),
         ("Typography", "Manage application, editor, and preview fonts."),
@@ -49,6 +53,13 @@ class SettingsDialog(QDialog):
         "editor": EDITOR_FONT_FAMILY,
         "preview": PREVIEW_FONT_FAMILY,
     }
+
+    AUTO_SAVE_INTERVALS = (
+        (15_000, "15 seconds"),
+        (30_000, "30 seconds"),
+        (60_000, "60 seconds"),
+        (120_000, "120 seconds"),
+    )
 
     def __init__(
         self,
@@ -72,6 +83,9 @@ class SettingsDialog(QDialog):
         self.category_list.setObjectName("settings_category_list")
         self.category_list.setFixedWidth(180)
 
+        self.auto_save_checkbox: QCheckBox | None = None
+        self.auto_save_interval_combo: QComboBox | None = None
+
         self.theme_names = theme_names
         self.current_theme = current_theme
         self.theme_combo: QComboBox | None = None
@@ -85,6 +99,8 @@ class SettingsDialog(QDialog):
                 page = self._create_appearance_page(description)
             elif title == "Typography":
                 page = self._create_typography_page(description)
+            elif title == "Files & Saving":
+                page = self._create_files_saving_page(description)
             else:
                 page = self._create_section_page(title, description)
 
@@ -143,6 +159,77 @@ class SettingsDialog(QDialog):
         layout.addStretch(1)
 
         return page
+
+    def _create_files_saving_page(self, description: str) -> QWidget:
+        """Create controls for automatic saving preferences."""
+        page = QWidget(self.pages)
+        layout = QVBoxLayout(page)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        title_label = QLabel("Files & Saving", page)
+        title_label.setObjectName("settings_section_title")
+
+        description_label = QLabel(description, page)
+        description_label.setWordWrap(True)
+
+        form_layout = QFormLayout()
+
+        self.auto_save_checkbox = QCheckBox("Enable automatic saving", page)
+        self.auto_save_checkbox.setObjectName("auto_save_checkbox")
+
+        saved_enabled = self.settings_manager.get(
+            "autosave/enabled",
+            True,
+            bool,
+        )
+        self.auto_save_checkbox.setChecked(saved_enabled)
+        self.auto_save_checkbox.toggled.connect(self.auto_save_enabled_changed.emit)
+
+        self.auto_save_interval_combo = QComboBox(page)
+        self.auto_save_interval_combo.setObjectName("auto_save_interval_combo")
+
+        saved_interval = self.settings_manager.get(
+            "autosave/interval",
+            60_000,
+            int,
+        )
+
+        for interval, label in self.AUTO_SAVE_INTERVALS:
+            self.auto_save_interval_combo.addItem(label, interval)
+
+        # Preserve previously saved intervals that are not in the standard options.
+        if self.auto_save_interval_combo.findData(saved_interval) < 0:
+            self.auto_save_interval_combo.addItem(
+                f"{saved_interval // 1000} seconds",
+                saved_interval,
+            )
+
+        saved_index = self.auto_save_interval_combo.findData(saved_interval)
+        self.auto_save_interval_combo.setCurrentIndex(saved_index)
+
+        self.auto_save_interval_combo.currentIndexChanged.connect(
+            self._on_auto_save_interval_changed
+        )
+
+        form_layout.addRow(self.auto_save_checkbox)
+        form_layout.addRow("Interval", self.auto_save_interval_combo)
+
+        layout.addWidget(title_label)
+        layout.addWidget(description_label)
+        layout.addSpacing(16)
+        layout.addLayout(form_layout)
+        layout.addStretch(1)
+
+        return page
+
+    def _on_auto_save_interval_changed(self, index: int) -> None:
+        """Emit the selected automatic saving interval."""
+        if index < 0 or self.auto_save_interval_combo is None:
+            return
+
+        interval = self.auto_save_interval_combo.itemData(index)
+        if interval is not None:
+            self.auto_save_interval_changed.emit(interval)
 
     def _on_theme_changed(self, index: int) -> None:
         """Notify the main window when the selected theme changes."""

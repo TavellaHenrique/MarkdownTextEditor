@@ -1,6 +1,6 @@
 import pytest
 from PySide6.QtCore import QSettings, QUrl
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QMenu, QMessageBox
 
 from markdown_editor.document_controller import DocumentController
 from markdown_editor.file_manager import FileManager
@@ -37,6 +37,17 @@ def settings_manager(tmp_path):
     )
 
     return SettingsManager(settings)
+
+
+def _get_menu(main_window, menu_name: str) -> QMenu:
+    """Return a menu by its visible title."""
+    for action in main_window.menuBar().actions():
+        normalized_text = action.text().replace("&", "")
+
+        if normalized_text == menu_name and action.menu() is not None:
+            return action.menu()
+
+    raise AssertionError(f"Menu '{menu_name}' was not found.")
 
 
 def test_window_initialization(main_window):
@@ -519,10 +530,83 @@ def test_new_file_preserves_document_when_save_dialog_is_cancelled(
 
 def test_new_action_exists_with_correct_shortcut(main_window):
     """Verify that the New action exists with the correct shortcut."""
-    file_menu = next(
-        action.menu() for action in main_window.menuBar().actions() if action.text() == "File"
-    )
+    file_menu = _get_menu(main_window, "File")
 
     new_action = next(action for action in file_menu.actions() if action.text() == "New")
 
     assert new_action.shortcut().toString() == "Ctrl+N"
+
+
+def test_auto_save_enabled_setting_updates_controller_and_persistence(
+    main_window,
+):
+    """Update autosave state and persist the preference."""
+    main_window._set_auto_save_enabled(False)
+
+    assert main_window.auto_save_controller.is_enabled is False
+    assert main_window.settings_manager.get("autosave/enabled", value_type=bool) is False
+
+    main_window._set_auto_save_enabled(True)
+
+    assert main_window.auto_save_controller.is_enabled is True
+    assert main_window.settings_manager.get("autosave/enabled", value_type=bool) is True
+
+
+def test_auto_save_interval_setting_updates_controller_and_persistence(
+    main_window,
+):
+    """Update autosave interval and persist the preference."""
+    main_window._set_auto_save_interval(30_000)
+
+    assert main_window.auto_save_controller.interval == 30_000
+    assert main_window.settings_manager.get("autosave/interval", value_type=int) == 30_000
+
+
+def test_settings_dialog_autosave_signals_update_main_window(
+    main_window,
+    monkeypatch,
+):
+    """Connect settings dialog autosave signals to the main window."""
+    from markdown_editor.settings_dialog import SettingsDialog
+
+    captured_dialog = None
+
+    def fake_exec(dialog):
+        nonlocal captured_dialog
+        captured_dialog = dialog
+
+    monkeypatch.setattr(SettingsDialog, "exec", fake_exec)
+
+    main_window._show_settings_dialog()
+
+    assert captured_dialog is not None
+
+    captured_dialog.auto_save_checkbox.setChecked(False)
+    captured_dialog.auto_save_interval_combo.setCurrentIndex(
+        captured_dialog.auto_save_interval_combo.findData(30_000)
+    )
+
+    assert main_window.auto_save_controller.is_enabled is False
+    assert main_window.auto_save_controller.interval == 30_000
+
+
+def test_file_menu_does_not_expose_autosave_settings(main_window):
+    """Ensure autosave preferences are no longer exposed in the File menu."""
+    file_menu = _get_menu(main_window, "File")
+
+    action_texts = [action.text().replace("&", "") for action in file_menu.actions()]
+
+    assert "Auto Save" not in action_texts
+    assert "Auto Save Interval" not in action_texts
+
+
+def test_file_menu_keeps_document_actions(main_window):
+    """Preserve the standard document actions in the File menu."""
+    file_menu = _get_menu(main_window, "File")
+
+    action_texts = [action.text().replace("&", "") for action in file_menu.actions()]
+
+    assert "New" in action_texts
+    assert "Open" in action_texts
+    assert "Save" in action_texts
+    assert "Save As" in action_texts

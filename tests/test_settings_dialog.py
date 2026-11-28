@@ -77,3 +77,56 @@ def test_theme_selection_emits_theme_changed_signal(qtbot, tmp_path):
         dialog.theme_combo.setCurrentIndex(1)
 
     assert signal.args == ["light"]
+
+
+def test_files_saving_page_exposes_autosave_controls(qtbot, tmp_path):
+    """Expose automatic saving controls with the default settings."""
+    settings = _create_settings_manager(tmp_path)
+    manager = FontManager(settings, tmp_path / "fonts")
+    dialog = SettingsDialog(settings, font_manager=manager)
+    qtbot.addWidget(dialog)
+
+    assert dialog.auto_save_checkbox.isChecked() is True
+    assert dialog.auto_save_interval_combo.currentData() == 60_000
+
+
+def test_files_saving_page_loads_saved_preferences(qtbot, tmp_path):
+    """Load saved automatic saving preferences."""
+    settings = _create_settings_manager(tmp_path)
+    settings.set("autosave/enabled", False)
+    settings.set("autosave/interval", 30_000)
+
+    manager = FontManager(settings, tmp_path / "fonts")
+    dialog = SettingsDialog(settings, font_manager=manager)
+    qtbot.addWidget(dialog)
+
+    assert dialog.auto_save_checkbox.isChecked() is False
+    assert dialog.auto_save_interval_combo.currentData() == 30_000
+
+
+def test_auto_save_enabled_changed_signal(qtbot, tmp_path):
+    """Emit the new enabled state when the checkbox changes."""
+    settings = _create_settings_manager(tmp_path)
+    manager = FontManager(settings, tmp_path / "fonts")
+    dialog = SettingsDialog(settings, font_manager=manager)
+    qtbot.addWidget(dialog)
+
+    with qtbot.waitSignal(dialog.auto_save_enabled_changed) as signal:
+        dialog.auto_save_checkbox.setChecked(False)
+
+    assert signal.args == [False]
+
+
+def test_auto_save_interval_changed_signal(qtbot, tmp_path):
+    """Emit the selected automatic saving interval."""
+    settings = _create_settings_manager(tmp_path)
+    manager = FontManager(settings, tmp_path / "fonts")
+    dialog = SettingsDialog(settings, font_manager=manager)
+    qtbot.addWidget(dialog)
+
+    index = dialog.auto_save_interval_combo.findData(30_000)
+
+    with qtbot.waitSignal(dialog.auto_save_interval_changed) as signal:
+        dialog.auto_save_interval_combo.setCurrentIndex(index)
+
+    assert signal.args == [30_000]

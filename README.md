@@ -2,7 +2,6 @@
 
 A simple desktop application for editing Markdown files with a real-time HTML preview.
 
-
 ## Features
 
 - Open Markdown (.md) files
@@ -35,7 +34,6 @@ source .venv/bin/activate
 Install the project and development dependencies:
 
 ```pip install -e ".[dev]"```
-
 
 ## Running the Application
 ```markdown-text-editor```

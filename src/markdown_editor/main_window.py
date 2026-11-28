@@ -347,10 +347,6 @@ class MainWindow(QMainWindow):
             heading_actions=heading_actions,
             list_actions=list_actions,
             code_actions=code_actions,
-            on_auto_save_toggled=self._set_auto_save_enabled,
-            auto_save_enabled=self.auto_save_controller.is_enabled,
-            on_auto_save_interval_changed=self._set_auto_save_interval,
-            auto_save_interval=self.auto_save_controller.interval,
             on_settings_requested=self._show_settings_dialog,
         )
 
@@ -363,8 +359,13 @@ class MainWindow(QMainWindow):
             theme_names=self.theme_controller.available_themes,
             current_theme=self.theme_controller.current_theme_name,
         )
+
         dialog.typography_changed.connect(self._apply_typography)
         dialog.theme_changed.connect(self._change_theme)
+
+        dialog.auto_save_enabled_changed.connect(self._set_auto_save_enabled)
+        dialog.auto_save_interval_changed.connect(self._set_auto_save_interval)
+
         dialog.exec()
 
     def _get_font_preference(self, key: str, available_fonts: list[str]) -> str:
@@ -566,11 +567,13 @@ class MainWindow(QMainWindow):
         """Enable or disable the automatic save feature."""
         self.auto_save_controller.set_enabled(enabled)
         self.settings_manager.set("autosave/enabled", enabled)
+        self.settings_manager.sync()
 
     def _set_auto_save_interval(self, interval: int):
         """Update the automatic save interval and persist it."""
         self.auto_save_controller.set_interval(interval)
         self.settings_manager.set("autosave/interval", interval)
+        self.settings_manager.sync()
 
     def _update_preview(self):
         """Update the preview using the current Markdown text."""
