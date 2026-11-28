@@ -58,3 +58,22 @@ def test_restore_default_fonts_resets_all_selectors(qtbot, tmp_path):
     assert dialog.font_combos["application"].currentText() == APPLICATION_FONT_FAMILY
     assert dialog.font_combos["editor"].currentText() == EDITOR_FONT_FAMILY
     assert dialog.font_combos["preview"].currentText() == PREVIEW_FONT_FAMILY
+
+
+def test_theme_selection_emits_theme_changed_signal(qtbot, tmp_path):
+    """Emit the internal theme name when the selected theme changes."""
+    settings = _create_settings_manager(tmp_path)
+    manager = FontManager(settings, tmp_path / "fonts")
+
+    dialog = SettingsDialog(
+        settings,
+        font_manager=manager,
+        theme_names=("dark", "light"),
+        current_theme="dark",
+    )
+    qtbot.addWidget(dialog)
+
+    with qtbot.waitSignal(dialog.theme_changed, timeout=1000) as signal:
+        dialog.theme_combo.setCurrentIndex(1)
+
+    assert signal.args == ["light"]

@@ -341,9 +341,6 @@ class MainWindow(QMainWindow):
             file_actions=file_actions,
             edit_actions=edit_actions,
             view_actions=view_actions,
-            theme_names=self.theme_controller.available_themes,
-            current_theme=self.theme_controller.current_theme_name,
-            on_theme_changed=self._change_theme,
             on_preview_toggled=self._toggle_preview_panel,
             on_outline_toggled=self._toggle_outline_panel,
             format_actions=format_actions,
@@ -363,8 +360,11 @@ class MainWindow(QMainWindow):
             self.settings_manager,
             self,
             font_manager=self.font_manager,
+            theme_names=self.theme_controller.available_themes,
+            current_theme=self.theme_controller.current_theme_name,
         )
         dialog.typography_changed.connect(self._apply_typography)
+        dialog.theme_changed.connect(self._change_theme)
         dialog.exec()
 
     def _get_font_preference(self, key: str, available_fonts: list[str]) -> str:
@@ -555,12 +555,11 @@ class MainWindow(QMainWindow):
 
         self._update_preview()
 
-    def _change_theme(self, theme_name: str):
+    def _change_theme(self, theme_name: str) -> None:
         """Change the selected theme and refresh the application."""
         self.theme_controller.set_theme(theme_name)
-
-        self.menu_controller.theme_actions[theme_name].setChecked(True)
-
+        self.settings_manager.set("appearance/theme", theme_name)
+        self.settings_manager.sync()
         self._apply_theme()
 
     def _set_auto_save_enabled(self, enabled: bool):
@@ -808,3 +807,19 @@ class MainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
+
+
+def test_settings_pages_are_added_to_stacked_widget(qtbot, settings_dialog):
+    """Ensure every settings category has a corresponding page."""
+    qtbot.addWidget(settings_dialog)
+
+    assert settings_dialog.pages.count() == len(settings_dialog.SECTIONS)
+
+
+def test_selecting_category_changes_visible_page(qtbot, settings_dialog):
+    """Display the corresponding page when selecting a category."""
+    qtbot.addWidget(settings_dialog)
+
+    settings_dialog.category_list.setCurrentRow(1)
+
+    assert settings_dialog.pages.currentIndex() == 1

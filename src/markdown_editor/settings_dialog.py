@@ -27,6 +27,7 @@ from markdown_editor.typography import (
 class SettingsDialog(QDialog):
     """Display application settings grouped into navigable sections."""
 
+    theme_changed = Signal(str)
     typography_changed = Signal(str, str, str)
 
     SECTIONS = (
@@ -54,6 +55,8 @@ class SettingsDialog(QDialog):
         settings_manager: SettingsManager,
         parent: QWidget | None = None,
         font_manager: FontManager | None = None,
+        theme_names: tuple[str, ...] = (),
+        current_theme: str = "dark",
     ) -> None:
         """Initialize the settings dialog and its navigation."""
         super().__init__(parent)
@@ -69,15 +72,22 @@ class SettingsDialog(QDialog):
         self.category_list.setObjectName("settings_category_list")
         self.category_list.setFixedWidth(180)
 
+        self.theme_names = theme_names
+        self.current_theme = current_theme
+        self.theme_combo: QComboBox | None = None
+
         self.pages = QStackedWidget(self)
         self.pages.setObjectName("settings_pages")
 
         for title, description in self.SECTIONS:
             self.category_list.addItem(title)
-            if title == "Typography":
+            if title == "Appearance":
+                page = self._create_appearance_page(description)
+            elif title == "Typography":
                 page = self._create_typography_page(description)
             else:
                 page = self._create_section_page(title, description)
+
             self.pages.addWidget(page)
 
         self.category_list.currentRowChanged.connect(self.pages.setCurrentIndex)
@@ -96,6 +106,52 @@ class SettingsDialog(QDialog):
         dialog_layout = QVBoxLayout(self)
         dialog_layout.addLayout(content_layout)
         dialog_layout.addWidget(button_box)
+
+    def _create_appearance_page(self, description: str) -> QWidget:
+        """Create controls for application appearance settings."""
+        page = QWidget(self.pages)
+        layout = QVBoxLayout(page)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        title_label = QLabel("Appearance", page)
+        title_label.setObjectName("settings_section_title")
+
+        description_label = QLabel(description, page)
+        description_label.setWordWrap(True)
+
+        form_layout = QFormLayout()
+
+        self.theme_combo = QComboBox(page)
+        self.theme_combo.setObjectName("theme_combo")
+
+        for theme_name in self.theme_names:
+            display_name = theme_name.replace("_", " ").replace("-", " ").title()
+            self.theme_combo.addItem(display_name, theme_name)
+
+        current_index = self.theme_combo.findData(self.current_theme)
+        if current_index >= 0:
+            self.theme_combo.setCurrentIndex(current_index)
+
+        self.theme_combo.currentIndexChanged.connect(self._on_theme_changed)
+
+        form_layout.addRow("Theme", self.theme_combo)
+
+        layout.addWidget(title_label)
+        layout.addWidget(description_label)
+        layout.addSpacing(16)
+        layout.addLayout(form_layout)
+        layout.addStretch(1)
+
+        return page
+
+    def _on_theme_changed(self, index: int) -> None:
+        """Notify the main window when the selected theme changes."""
+        if index < 0 or self.theme_combo is None:
+            return
+
+        theme_name = self.theme_combo.itemData(index)
+        if theme_name:
+            self.theme_changed.emit(theme_name)
 
     def _create_section_page(self, title: str, description: str) -> QWidget:
         """Create a placeholder page for a settings category."""

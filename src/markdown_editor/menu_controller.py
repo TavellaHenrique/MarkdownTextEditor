@@ -16,9 +16,6 @@ class MenuController:
         file_actions: list[ActionConfig],
         edit_actions: list[ActionConfig],
         view_actions: list[ActionConfig],
-        theme_names: tuple[str, ...],
-        current_theme: str,
-        on_theme_changed: Callable[[str], None],
         on_preview_toggled: Callable[[bool], None],
         on_outline_toggled: Callable[[bool], None] | None = None,
         format_actions: list[ActionConfig] | None = None,
@@ -34,7 +31,6 @@ class MenuController:
         """Initialize the menu controller."""
         self._menu_bar = menu_bar
         self._parent = parent
-        self._theme_actions: dict[str, QAction] = {}
         self._preview_action: QAction | None = None
         self._outline_action: QAction | None = None
         self._auto_save_action: QAction | None = None
@@ -56,9 +52,6 @@ class MenuController:
         )
         self._create_view_menu(
             view_actions,
-            theme_names,
-            current_theme,
-            on_theme_changed,
             on_preview_toggled,
             on_outline_toggled,
         )
@@ -202,9 +195,6 @@ class MenuController:
     def _create_view_menu(
         self,
         actions: list[ActionConfig],
-        theme_names: tuple[str, ...],
-        current_theme: str,
-        on_theme_changed: Callable[[str], None],
         on_preview_toggled: Callable[[bool], None],
         on_outline_toggled: Callable[[bool], None] | None,
     ) -> None:
@@ -229,13 +219,6 @@ class MenuController:
             self._outline_action.toggled.connect(on_outline_toggled)
 
         view_menu.addAction(self._outline_action)
-
-        self._create_theme_menu(
-            view_menu,
-            theme_names,
-            current_theme,
-            on_theme_changed,
-        )
 
         view_menu.addSeparator()
         self._add_actions(view_menu, actions)
